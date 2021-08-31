@@ -1,3 +1,2 @@
 # DITrader
-System Trading System with binance API in python
-Hello
+System Trading System with binance API in python.
