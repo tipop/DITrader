@@ -1,20 +1,17 @@
 # main.py
 # 2021.08.28 ~ 
 # Shin, SangYun
-# 
-# 절차지향에서 객체지향으로
-#
+
 import threading
 from lib.ApiLib import *
 from DITrader import *
+import pprint
 
 def startDITrading(symbol, isBucketMode):
-    print("Started monitoring: ", symbol)
     coin = DITrader(symbol=symbol, isBucketMode=isBucketMode)
     # coin.startTrading(targetDI=0.009, marginRatio=0.04)
-    coin.startTrading(targetDI=0.033, marginRatio=0.5)
+    coin.startTrading(targetDI=0.03, marginRatio=0.5)
     
-
 #################### main ####################
 coinList = [
     "ADA/USDT",  
@@ -38,7 +35,8 @@ coinList = [
     "XRP/USDT",    
     ]   # 19개 (제외 코인: BTC, ETH)
 
-print("Main started")
+print("Target symbols: ", len(coinList))
+pprint.pprint(coinList)
 
 for coin in coinList:
     t = threading.Thread(target = startDITrading, args=(coin, True))    

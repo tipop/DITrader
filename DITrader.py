@@ -4,6 +4,8 @@ import os.path
 import time
 import beepy
 
+TRY_COUNT = 5
+
 class DITrader:
     def __init__(self, symbol, isBucketMode):
         self.symbol = symbol
@@ -13,7 +15,7 @@ class DITrader:
         filePath = os.path.join(pathHere, 'api.txt')
 
         self.lib = Lib(filePath)
-        self.api = self.lib.getBinanceApi()
+        #self.api = self.lib.getBinanceApi()
 
     def startTrading(self, targetDI, marginRatio):
         # 1. DI trading
@@ -37,30 +39,34 @@ class BucketBot:
         self.marginRatio = marginRatio
 
         while True:
-            order = self.BucketOrderLoop()   # 바스켓이 체결되면 리턴된다.
-            beepy.beep(sound="ready")
-            
-            position = Position(
-                lib = self.lib,
-                symbol = self.symbol,
-                order = order, 
-                profitPercent = 1.01,        # x% 익절
-                triggerPercentForStoploss = 1.004)    # x% 상승하면 본절로스를 건다.
+            try:
+                order = self.BucketOrderLoop()   # 바스켓이 체결되면 리턴된다.
+                beepy.beep(sound="ready")
                 
-            pnl = position.waitForPositionClosed()  # 포지션이 종료되면 리턴된다. (익절이든 본절/손절이든)
+                position = Position(
+                    lib = self.lib,
+                    symbol = self.symbol,
+                    order = order, 
+                    profitPercent = 1.01,        # x% 익절
+                    triggerPercentForStoploss = 1.004)    # x% 상승하면 본절로스를 건다.
+                    
+                pnl = position.waitForPositionClosed()  # 포지션이 종료되면 리턴된다. (익절이든 본절/손절이든)
+            
+            except Exception as ex:
+                break
+
+        print("## 매매 종료 : ", self.symbol)
 
     def orderBuyTargetDI(self):
         curPrice = self.lib.getCurrentPrice(self.symbol)
         ma20 = self.lib.get20Ma(self.symbol, curPrice)
         targetPrice = ma20 * (1 - self.targetDI)
         quantity = self.lib.getQuantity(curPrice, self.marginRatio)
-        return self.api.create_limit_buy_order(self.symbol, quantity, targetPrice)
+        return self.lib.api.create_limit_buy_order(self.symbol, quantity, targetPrice)
 
     def BucketOrderLoop(self):
-        TRY_COUNT = 5
         countOfFailure = 0
         order = None
-        api = self.lib.api
 
         while True:
             now = dt.datetime.now()
@@ -73,25 +79,27 @@ class BucketBot:
             
             try:
                 if order != None:
-                    order = api.fetch_order(order['id'], self.symbol)
+                    order = self.lib.api.fetch_order(order['id'], self.symbol)
 
                     # 바스켓 매수 체결됨
                     if self.lib.hasClosed(order):
                         print(nowStr, self.symbol, "[바스켓] 체결되었다: ", order['price'])
                         break
                     else:   # 미체결 매수취소
-                        api.cancel_order(order['id'], self.symbol)
+                        self.lib.api.cancel_order(order['id'], self.symbol)
                         order = None
 
                 # (재) 매수 주문
                 if order == None:
                     order = self.orderBuyTargetDI()
 
-                countOfFailure = 0
+                if countOfFailure > 0:
+                    print(nowStr, "[BucketOrderLoop] 에러 복구 됨: ", self.symbol)
+                    countOfFailure = 0
             
             except Exception as ex:
-                print("Exception failure count: ", countOfFailure, ex)
                 countOfFailure += 1
+                print("[BucketOrderLoop] Exception failure count: ", countOfFailure, ex)
                 if countOfFailure >= TRY_COUNT:
                     raise ex  # 30초 뒤에 시도해 보고 연속 5번 exception 나면 매매를 종료한다.
 
@@ -160,7 +168,6 @@ class Position:
         return pnl
 
     def waitForPositionClosed(self):
-        TRY_COUNT = 5
         countOfFailure = 0
 
         # 익절 주문 걸고 시작
@@ -190,11 +197,13 @@ class Position:
                         self.lib.api.cancel_order(self.profitOrder['id'], self.symbol)
                     break
 
-                countOfFailure = 0
+                if countOfFailure > 0:
+                    print(nowStr, "[BucketOrderLoop] 에러 복구 됨: ", self.symbol)
+                    countOfFailure = 0
 
             except Exception as ex:
-                print("Exception failure count: ", countOfFailure, ex)
                 countOfFailure += 1
+                print("[waitForPositionClosed] Exception failure count: ", countOfFailure, ex)
                 if countOfFailure >= TRY_COUNT:
                     raise ex  # 30초 뒤에 시도해 보고 연속 5번 exception 나면 매매를 종료한다.
 

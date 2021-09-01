@@ -92,7 +92,7 @@ class Lib:
         return self.get_moving_average(close_1min_20_list)
 
 
-        ####### 트레이링 스탑 동작 함###############
+    ####### 트레이링 스탑 동작 함###############
         #rate = '0.5'
         #price = None
         #params = {
