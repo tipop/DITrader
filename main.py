@@ -4,9 +4,8 @@
 
 import threading
 from DITrader import *
-import pprint
 import json
-#from loguru import logger
+from loguru import logger
 
 def startDITrading(symbol, bucketJs):
     coin = DITrader(symbol, True)
@@ -21,17 +20,17 @@ js = readJsonSetting()
 bucketJs = js['bucket']
 coinList = js["symbols"]
 
-print("\nTargetDI:\t", bucketJs['targetDI']*100, "%")
-print("profit:\t\t", bucketJs['profitPercent']*100, "%")
-print("marginRatio:\t", bucketJs['marginRatio']*100, "%")
-print("stoplossTrigger:", bucketJs['stoplossTriggerPercent']*100, "%")
-print("\nTarget Symbols:\t", len(coinList))
-pprint.pprint(coinList)
-
+logger.add('logs/log.log', level='INFO')
+logger.info("TargetDI: " + str(bucketJs['targetDI']*100) + "%")
+logger.info("profit: " + str(bucketJs['profitPercent']*100) + "%")
+logger.info("marginRatio: " + str(bucketJs['marginRatio']*100) + "%")
+logger.info("stoplossTrigger: " + str(bucketJs['stoplossTriggerPercent']*100) + "%")
+logger.info("Target Symbols: " + str(len(coinList)))
+logger.info(coinList)
 
 for coin in coinList:
-        t = threading.Thread(target = startDITrading, args=(coin, bucketJs))
-        t.start()
+    t = threading.Thread(target = startDITrading, args=(coin, bucketJs))
+    t.start()
 
 
 # new thread

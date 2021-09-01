@@ -3,6 +3,7 @@ from lib.ApiLib import *
 import os.path
 import time
 import beepy
+from loguru import logger
 
 TRY_COUNT = 5
 
@@ -50,7 +51,7 @@ class BucketBot:
             except Exception as ex:
                 break
 
-        print("## 매매 종료 : ", self.symbol)
+        logger.error("## 매매 종료 : " + self.symbol)
 
     def orderBuyTargetDI(self):
         curPrice = Lib.getCurrentPrice(self.symbol)
@@ -69,16 +70,13 @@ class BucketBot:
                 time.sleep(0.5)
                 continue
 
-            # 매분 59초가 되면 바스켓 주문을 업데이트 한다. (취소 후 재주문)
-            nowStr = now.strftime("%Y-%m-%d %H:%M:%S")
-            
             try:
                 if order != None:
                     order = Lib.api.fetch_order(order['id'], self.symbol)
 
                     # 바스켓 매수 체결됨
                     if Lib.hasClosed(order):
-                        print(nowStr, self.symbol, "[바스켓] 체결되었다: ", order['price'])
+
                         break
                     else:   # 미체결 매수취소
                         Lib.api.cancel_order(order['id'], self.symbol)
@@ -89,12 +87,12 @@ class BucketBot:
                     order = self.orderBuyTargetDI()
 
                 if countOfFailure > 0:
-                    print(nowStr, "[BucketOrderLoop] 에러 복구 됨: ", self.symbol)
+                    logger.info("에러 복구 됨: " + self.symbol)
                     countOfFailure = 0
             
             except Exception as ex:
                 countOfFailure += 1
-                print("[BucketOrderLoop] Exception failure count: ", countOfFailure, ex)
+                logger.warning(str(countOfFailure) + " Exception failure  " +  str(ex))
                 if countOfFailure >= TRY_COUNT:
                     raise ex  # 30초 뒤에 시도해 보고 연속 5번 exception 나면 매매를 종료한다.
 
@@ -145,17 +143,17 @@ class Position:
         self.stopOrder = Lib.api.fetch_order(self.stopOrder['id'], self.symbol)
         return self.stopOrder['status'] == 'closed'
     
-    def getPNL(self, nowStr):
+    def getPNL(self):
         pnl = 0
         
         if self.profitOrder != None and self.profitOrder['status'] == 'closed':
             pnl = (self.profitOrder['price'] - self.positionOrder['price']) / self.positionOrder['price']
-            print(nowStr, self.symbol, "[바스켓] ## 익절완료. pnl: ", pnl)
+            logger.info("## 익절 완료 " + self.symbol + " pnl: " + pnl)
             beepy.beep(sound='success')
         
         elif self.stopOrder != None and self.stopOrder['status'] == 'closed':
             pnl = (self.stopOrder['price'] - self.positionOrder['price']) / self.positionOrder['price']
-            print(nowStr, self.symbol, "[바스켓] ## 본절완료. pnl: ", pnl)
+            logger.info("## 본절 완료 " + self.symbol + " pnl: " + pnl)
             beepy.beep(sound='ping')
 
         # 손익 % 뿐만아니라 손익 금액 및 잔고 변화도 출력해야한다.
@@ -166,18 +164,15 @@ class Position:
 
         # 익절 주문 걸고 시작
         self.orderProfit()
-        print("[바스켓]", self.symbol, "익절 주문: ", self.profitOrder['price'])
+        logger.info("익절 주문: " + self.symbol + " : " + self.profitOrder['price'])
         
 
         while True:
-            now = dt.datetime.now()
-            nowStr = now.strftime("%Y-%m-%d %H:%M:%S")
-
             try:
                 # 본절 로스 조건부 주문 (1회)
                 if self.stopOrder == None and self.isStopTriggerPriceOver():
                     self.stopOrder = self.orderStoploss(1.001)
-                    print(nowStr, self.symbol, "[바스켓] 본절로스 주문: ", self.stopOrder['price'])
+                    logger.info("본절로스 주문: " + self.symbol + " " + self.stopOrder['price'])
 
                 # 익절 체결됐나
                 if self.hasProfitOrderClosed():
@@ -192,18 +187,18 @@ class Position:
                     break
 
                 if countOfFailure > 0:
-                    print(nowStr, "[BucketOrderLoop] 에러 복구 됨: ", self.symbol)
+                    logger.info("에러 복구 됨: " + self.symbol)
                     countOfFailure = 0
 
             except Exception as ex:
                 countOfFailure += 1
-                print("[waitForPositionClosed] Exception failure count: ", countOfFailure, ex)
+                logger.warning(str(countOfFailure) + " Exception failure  : " +  str(ex))
                 if countOfFailure >= TRY_COUNT:
                     raise ex  # 30초 뒤에 시도해 보고 연속 5번 exception 나면 매매를 종료한다.
 
             time.sleep(5)
 
-        return self.getPNL(nowStr)
+        return self.getPNL()
         
         # 포지션을 들고 있는 상태에서
         #   - 2초마다 본절스탑 트리거 이상 상승했는지는 체크해서 +0.1%에 스탑로스 주문을 넣어야 한다.
