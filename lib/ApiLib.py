@@ -4,13 +4,7 @@ import time
 import pandas as pd
 import pprint
 
-#api = ccxt.binance()
-
-#    print("\t[매도] 체결수량: ", order['filled'], "미체결수량: ", order['remaining'], "주문가: ", order['price'])
-
 class Lib:
-    api = None
-
     def init(apiKeyFilePath):
         # binance 객체 생성
         with open(apiKeyFilePath, "r") as f:
@@ -24,7 +18,6 @@ class Lib:
             'enableRateLimit': True,        # 시장가로 주문이 제출되는 것을 방지하기 위한 'Post-only' 설정값
             'options': { 
                 'defaultType': 'future',    # 선물 마켓으로 객체 생성
-                # 'api-expires': 60         # 제출한 주문 유효기간 (초). 60초 (자동 취소 안되네?)
             }
         })
 
@@ -109,3 +102,5 @@ class Lib:
         #    price, 
         #    params)
         #################################
+
+#    print("\t[매도] 체결수량: ", order['filled'], "미체결수량: ", order['remaining'], "주문가: ", order['price'])
