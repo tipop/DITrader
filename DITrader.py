@@ -15,44 +15,7 @@ class DITrader:
         self.lib = Lib(filePath)
         self.api = self.lib.getBinanceApi()
 
-    def startTrading(self, targetDI, marginRatio):        
-        ############### TEST ###########
-        #order = self.lib.api.create_market_buy_order(self.symbol, 50)
-        
-        #stopP = order['price'] - (order['price'] * 0.01)
-        #stopP = order['price'] + (order['price'] * 0.001)
-        #params = {'stopPrice': stopP, 'reduceOnly': True}
-
-        # 스탑 가격이 평단가보다 높을 때는 수익권일 때만 주문이 들어간다.
-        #stopOrder = self.api.createOrder(
-        #    self.symbol,
-        #    'stop_market',
-        #    'sell',
-        #    order['filled'],
-        #    None,
-        #    params)
-
-        #return
-
-        ####### 트레이링 스탑 동작 함###############
-        #rate = '0.5'
-        #price = None
-        #params = {
-        #    'stopPrice': order['price']-1,
-        #    'callbackRate': rate
-        #}
-
-        #order = self.api.create_order(
-        #    self.symbol, 
-        #    'TRAILING_STOP_MARKET', 
-        #    'sell',
-        #    1, 
-        #    price, 
-        #    params)
-
-        # return
-        #################################
-
+    def startTrading(self, targetDI, marginRatio):
         # 1. DI trading
         #
 
@@ -75,7 +38,6 @@ class BucketBot:
 
         while True:
             order = self.BucketOrderLoop()   # 바스켓이 체결되면 리턴된다.
-            #pprint.pprint(order)
             beepy.beep(sound="ready")
             
             position = Position(
@@ -85,12 +47,19 @@ class BucketBot:
                 profitPercent = 1.01,        # x% 익절
                 triggerPercentForStoploss = 1.004)    # x% 상승하면 본절로스를 건다.
                 
-            pnl = position.waitForClosed()  # 포지션이 종료되면 리턴된다. (익절이든 본절/손절이든)
+            pnl = position.waitForPositionClosed()  # 포지션이 종료되면 리턴된다. (익절이든 본절/손절이든)
 
+    def orderBuyTargetDI(self):
+        curPrice = self.lib.getCurrentPrice(self.symbol)
+        ma20 = self.lib.get20Ma(self.symbol, curPrice)
+        targetPrice = ma20 * (1 - self.targetDI)
+        quantity = self.lib.getQuantity(curPrice, self.marginRatio)
+        return self.api.create_limit_buy_order(self.symbol, quantity, targetPrice)
 
     def BucketOrderLoop(self):
         order = None
         api = self.lib.api
+        countOfFailure = 0
 
         while True:
             now = dt.datetime.now()
@@ -101,29 +70,31 @@ class BucketBot:
             # 매분 59초가 되면 바스켓 주문을 업데이트 한다. (취소 후 재주문)
             nowStr = now.strftime("%Y-%m-%d %H:%M:%S")
             
-            # 주문한게 체결되었나 안되었나? 
-            if order != None:
-                order = api.fetch_order(order['id'], self.symbol)
+            try:
+                if order != None:
+                    order = api.fetch_order(order['id'], self.symbol)
 
-                # 바스켓 체결됨
-                if self.lib.hasClosed(order):
-                    print(nowStr, self.symbol, "[바스켓] 체결되었다: ", order['price'])
-                    break # 함수 종료
-                else:
-                    # print(nowStr, self.symbol, "[바스켓] 미체결 취소: ", order['price'])
-                    api.cancel_order(order['id'], self.symbol)
-                    order = None
+                    # 바스켓 매수 체결됨
+                    if self.lib.hasClosed(order):
+                        print(nowStr, self.symbol, "[바스켓] 체결되었다: ", order['price'])
+                        break
+                    else:   # 미체결 매수취소
+                        api.cancel_order(order['id'], self.symbol)
+                        order = None
 
-            # (재) 매수 주문
-            if order == None:
-                curPrice = self.lib.getCurrentPrice(self.symbol)
-                ma20 = self.lib.get20Ma(self.symbol, curPrice)
-                targetPrice = ma20 * (1 - self.targetDI)
-                quantity = self.lib.getQuantity(curPrice, self.marginRatio)
-                order = api.create_limit_buy_order(self.symbol, quantity, targetPrice)
-                # print(nowStr, self.symbol, "[바스켓] 매수 주문: ", order['price'])
+                # (재) 매수 주문
+                if order == None:
+                    order = self.orderBuyTargetDI()
 
-            time.sleep(1)   # 1초에 두번 취소->주문 되는걸 방지하기 위해 1초를 쉰다. 
+                countOfFailure = 0
+            
+            except Exception as ex:
+                print("Exception failure count: ", countOfFailure, ex)
+                countOfFailure += 1
+                if countOfFailure >= 5:
+                    raise ex  # 30초 뒤에 시도해 보고 연속 5번 exception 나면 매매를 종료한다.
+
+            time.sleep(1)   # 1초에 두 번 취소->주문 되는걸 방지하기 위해 1초를 쉰다. 
 
         return order # 체결된 바스켓 주문을 리턴한다.
 
@@ -135,74 +106,100 @@ class Position:
         self.positionOrder = order
         self.profitPrice = order['price'] * profitPercent
         self.triggerPriceForStoploss = order['price'] * triggerPercentForStoploss
+        
+        self.stopOrder = None
+        self.profitOrder = None
     
-    def waitForClosed(self):
-        profitOrder = None
-        stopOrder = None
-        pnl = 0
-
-        # 익절 주문 걸어두고
-        profitOrder = self.lib.api.create_limit_sell_order(
+    def orderProfit(self):
+        self.profitOrder = self.lib.api.create_limit_sell_order(
             self.symbol, 
             self.positionOrder['filled'], 
             self.profitPrice)
+    
+    def orderStoploss(self, stoplossPercent):
+        stoplossPrice = self.positionOrder['price'] * stoplossPercent
         
-        print("[바스켓]", self.symbol, "익절 주문: ", self.profitPrice)
+        #params = {'stopPrice': stopP, 'reduceOnly': True}
+        # 스탑 가격이 평단가보다 높을 때는 수익권일 때만 주문이 들어간다.
+        params = {'stopPrice': stoplossPrice}
+
+        self.stopOrder = self.lib.api.createOrder(
+            self.symbol,
+            'stop_market',
+            'sell',
+            self.positionOrder['filled'],
+            None,
+            params)
+
+    def isStopTriggerPriceOver(self):
+        return self.lib.getCurrentPrice(self.symbol) > self.triggerPriceForStoploss
+
+    def hasProfitOrderClosed(self):
+        self.profitOrder = self.lib.api.fetch_order(self.profitOrder['id'], self.symbol)
+        return self.profitOrder['status'] == 'closed'
+
+    def hasStopOrderClosed(self):
+        self.stopOrder = self.lib.api.fetch_order(self.stopOrder['id'], self.symbol)
+        return self.stopOrder['status'] == 'closed'
+    
+    def getPNL(self, nowStr):
+        pnl = 0
+        
+        if self.profitOrder != None and self.profitOrder['status'] == 'closed':
+            pnl = (self.profitOrder['price'] - self.positionOrder['price']) / self.positionOrder['price']
+            print(nowStr, self.symbol, "[바스켓] ## 익절완료. pnl: ", pnl)
+            beepy.beep(sound='success')
+        
+        elif self.stopOrder != None and self.stopOrder['status'] == 'closed':
+            pnl = (self.stopOrder['price'] - self.positionOrder['price']) / self.positionOrder['price']
+            print(nowStr, self.symbol, "[바스켓] ## 본절완료. pnl: ", pnl)
+            beepy.beep(sound='ping')
+
+        # 손익 % 뿐만아니라 손익 금액 및 잔고 변화도 출력해야한다.
+        return pnl
+
+    def waitForPositionClosed(self):
+        countOfFailure = 0
+
+        # 익절 주문 걸고 시작
+        self.orderProfit()
+        print("[바스켓]", self.symbol, "익절 주문: ", self.profitOrder['price'])
+        
 
         while True:
-            
             now = dt.datetime.now()
             nowStr = now.strftime("%Y-%m-%d %H:%M:%S")
 
-            if stopOrder == None:
-                curPrice = self.lib.getCurrentPrice(self.symbol)
-                if curPrice > self.triggerPriceForStoploss:
-                    stoplossPrice = self.positionOrder['price'] * 1.001
-                    
-                    #params = {'stopPrice': stopP, 'reduceOnly': True}
-                    # 스탑 가격이 평단가보다 높을 때는 수익권일 때만 주문이 들어간다.
-                    params = {'stopPrice': stoplossPrice}
+            try:
+                # 본절 로스 조건부 주문 (1회)
+                if self.stopOrder == None and self.isStopTriggerPriceOver():
+                    self.orderStoploss(1.001)
+                    print(nowStr, self.symbol, "[바스켓] 본절로스 주문: ", self.stopOrder['price'])
 
-                    stopOrder = self.lib.api.createOrder(
-                        self.symbol,
-                        'stop_market',
-                        'sell',
-                        self.positionOrder['filled'],
-                        None,
-                        params)
-
-                    print(nowStr, self.symbol, "[바스켓] 본절로스 주문: ", stoplossPrice)
-            
-            # 익절 체결되었으면 스탑로스를 취소한다.
-            
-
-            if profitOrder != None:
-                profitOrder = self.lib.api.fetch_order(profitOrder['id'], self.symbol)
-                if profitOrder['status'] == 'closed':
-                    if stopOrder != None:
-                        self.lib.api.cancel_order(stopOrder['id'], self.symbol)
-
-                    pnl = 1     # TODO: pnl을 계산해서 리턴해야 한다.
-                    print(nowStr, self.symbol, "[바스켓] 익절 체결 완료. pnl: ", pnl)
-                    beepy.beep(sound='success')
+                # 익절 체결됐나
+                if self.hasProfitOrderClosed():
+                    if self.stopOrder != None:
+                        self.lib.api.cancel_order(self.stopOrder['id'], self.symbol)
                     break
 
-            # 스탑로스 체결되었으면 익절 주문 취소한다.
-            if stopOrder != None:
-                stopOrder = self.lib.api.fetch_order(stopOrder['id'], self.symbol)
-                if stopOrder['status'] == 'closed':
-                    if profitOrder != None:
-                        self.lib.api.cancel_order(profitOrder['id'], self.symbol)
+                # 스탑로스 체결됐나
+                if self.stopOrder != None and self.hasStopOrderClosed():
+                    if self.profitOrder != None:
+                        self.lib.api.cancel_order(self.profitOrder['id'], self.symbol)
+                    break
 
-                pnl = 1     # TODO: pnl을 계산해서 리턴해야 한다.
-                print(nowStr, self.symbol, "[바스켓] 본절 체결 완료. pnl: ", pnl)
-                beepy.beep(sound='ping')
-                break
+                countOfFailure = 0
+
+            except Exception as ex:
+                print("Exception failure count: ", countOfFailure, ex)
+                countOfFailure += 1
+                if countOfFailure >= 5:
+                    raise ex  # 30초 뒤에 시도해 보고 연속 5번 exception 나면 매매를 종료한다.
 
             time.sleep(5)
+
+        return self.getPNL(nowStr)
         
-        return pnl
-        
-        # 포지션을 들고 있는 상태에서 
+        # 포지션을 들고 있는 상태에서
         #   - 2초마다 본절스탑 트리거 이상 상승했는지는 체크해서 +0.1%에 스탑로스 주문을 넣어야 한다.
         #   - 익절주문/스탑주문이 체결되었는지 체크하는건 10초마다 해도 된다.

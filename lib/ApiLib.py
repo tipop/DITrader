@@ -90,3 +90,21 @@ class Lib:
         close_1min_20_list = df['close'].to_list()
         close_1min_20_list[-1] = curPrice # 현재가로 교체하여 보정
         return self.get_moving_average(close_1min_20_list)
+
+
+        ####### 트레이링 스탑 동작 함###############
+        #rate = '0.5'
+        #price = None
+        #params = {
+        #    'stopPrice': order['price']-1,
+        #    'callbackRate': rate
+        #}
+
+        #order = self.api.create_order(
+        #    self.symbol, 
+        #    'TRAILING_STOP_MARKET', 
+        #    'sell',
+        #    1, 
+        #    price, 
+        #    params)
+        #################################

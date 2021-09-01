@@ -12,7 +12,7 @@ def startDITrading(symbol, isBucketMode):
     print("Started monitoring: ", symbol)
     coin = DITrader(symbol=symbol, isBucketMode=isBucketMode)
     # coin.startTrading(targetDI=0.009, marginRatio=0.04)
-    coin.startTrading(targetDI=0.021, marginRatio=0.05)
+    coin.startTrading(targetDI=0.033, marginRatio=0.5)
     
 
 #################### main ####################
@@ -36,7 +36,7 @@ coinList = [
     "RSR/USDT",
     "SOL/USDT",
     "XRP/USDT",    
-    ]   # 19개
+    ]   # 19개 (제외 코인: BTC, ETH)
 
 print("Main started")
 
