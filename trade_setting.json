@@ -1,0 +1,38 @@
+{
+    "symbols": [
+        "ADA/USDT",
+        "AXS/USDT",
+        "BCH/USDT",
+        "BNB/USDT",
+        "CHZ/USDT",
+        "DOGE/USDT",
+        "DOT/USDT",
+        "EOS/USDT",
+        "ETC/USDT",
+        "FIL/USDT",
+        "LINK/USDT",
+        "LTC/USDT",
+        "LUNA/USDT",
+        "MANA/USDT",
+        "MATIC/USDT",
+        "ONE/USDT",
+        "RSR/USDT",
+        "SOL/USDT",
+        "XRP/USDT"
+    ],
+
+    "bucket": {
+        "targetDI": 0.03,
+        "profitPercent": 0.011,
+        "marginRatio": 0.5,
+        "stoplossTriggerPercent": 0.005
+    },
+    "catch": {
+        "stoplossTriggerPercent": 0.005,
+        "targets": [
+            {"DI": 0.03, "marginRatio": 2, "profitPercent": 0.011},
+            {"DI": 0.033, "marginRatio": 5, "profitPercent": 0.015},
+            {"DI": 0.045, "marginRatio": 10, "profitPercent": 0.03}
+        ]
+    }
+}

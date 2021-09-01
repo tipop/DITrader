@@ -6,43 +6,42 @@ import threading
 from lib.ApiLib import *
 from DITrader import *
 import pprint
+import json
 
-def startDITrading(symbol, isBucketMode):
-    coin = DITrader(symbol=symbol, isBucketMode=isBucketMode)
-    # coin.startTrading(targetDI=0.009, marginRatio=0.04)
-    coin.startTrading(targetDI=0.03, marginRatio=0.5)
-    
+def startDITrading(symbol, bucketJs):
+    coin = DITrader(symbol, True)
+    coin.startTrading(bucketJs)
+
+def readJsonSetting():
+    with open("trade_setting.json", "r") as jsonFile:
+        return json.load(jsonFile)
+
 #################### main ####################
-coinList = [
-    "ADA/USDT",  
-    "AXS/USDT", 
-    "BCH/USDT",
-    "BNB/USDT",
-    "CHZ/USDT",
-    "DOGE/USDT",
-    "DOT/USDT",
-    "EOS/USDT",
-    "ETC/USDT",
-    "FIL/USDT",
-    "LINK/USDT",
-    "LTC/USDT",
-    "LUNA/USDT",
-    "MANA/USDT",
-    "MATIC/USDT",
-    "ONE/USDT",
-    "RSR/USDT",
-    "SOL/USDT",
-    "XRP/USDT",    
-    ]   # 19개 (제외 코인: BTC, ETH)
+js = readJsonSetting()
+bucketJs = js['bucket']
+coinList = js["symbols"]
 
-print("Target symbols: ", len(coinList))
+print("\nTargetDI:\t", bucketJs['targetDI']*100, "%")
+print("profit:\t\t", bucketJs['profitPercent']*100, "%")
+print("marginRatio:\t", bucketJs['marginRatio']*100, "%")
+print("stoplossTrigger:", bucketJs['stoplossTriggerPercent']*100, "%")
+print("\nTarget Symbols:\t", len(coinList))
 pprint.pprint(coinList)
 
+
 for coin in coinList:
-    t = threading.Thread(target = startDITrading, args=(coin, True))    
+    t = threading.Thread(target = startDITrading, args=(coin, bucketJs))
     t.start()
 
 
 # new thread
 # bucketBot = BucketBot(binance, symbol)
 # bucketBot.startBucketTrading()
+
+#TODO: 옵션을 JSON으로 분리한다.
+#   - 공통 target DI 1, 2 3  (3 / 3.3 / 4.5)
+#   - 공통 진입 배율(마진)
+#   - symbol 목록
+#   - symbol 별 target DI (명시할 때만 공통 target DI를 무시한다)
+#   - 익절 %
+#   - 본절 트리거 %

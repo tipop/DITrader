@@ -13,17 +13,15 @@ class DITrader:
 
         pathHere = os.path.dirname(__file__)
         filePath = os.path.join(pathHere, 'api.txt')
-
         self.lib = Lib(filePath)
-        #self.api = self.lib.getBinanceApi()
 
-    def startTrading(self, targetDI, marginRatio):
+    def startTrading(self, bucketJs):
         # 1. DI trading
         #
 
         # 2. Bucket trading
         bucketBot = BucketBot(self.symbol, self.lib)
-        bucketBot.start(targetDI, marginRatio)
+        bucketBot.start(bucketJs)
         
 
 class BucketBot:
@@ -34,9 +32,9 @@ class BucketBot:
     def stop(self):
         pass
 
-    def start(self, targetDI, marginRatio):
-        self.targetDI = targetDI
-        self.marginRatio = marginRatio
+    def start(self, bucketJs):
+        self.targetDI = bucketJs['targetDI']
+        self.marginRatio = bucketJs['marginRatio']
 
         while True:
             try:
@@ -47,8 +45,7 @@ class BucketBot:
                     lib = self.lib,
                     symbol = self.symbol,
                     order = order, 
-                    profitPercent = 1.01,        # x% 익절
-                    triggerPercentForStoploss = 1.004)    # x% 상승하면 본절로스를 건다.
+                    bucketJs = bucketJs)
                     
                 pnl = position.waitForPositionClosed()  # 포지션이 종료되면 리턴된다. (익절이든 본절/손절이든)
             
@@ -109,12 +106,12 @@ class BucketBot:
 
 
 class Position:
-    def __init__(self, lib, symbol, order, profitPercent, triggerPercentForStoploss):    
+    def __init__(self, lib, symbol, order, bucketJs):    
         self.lib = lib
         self.symbol = symbol
         self.positionOrder = order
-        self.profitPrice = order['price'] * profitPercent
-        self.triggerPriceForStoploss = order['price'] * triggerPercentForStoploss
+        self.profitPrice = order['price'] * (1 + bucketJs['profitPercent'])
+        self.triggerPriceForStoploss = order['price'] * (1 + bucketJs['stoplossTriggerPercent'])
         
         self.stopOrder = None
         self.profitOrder = None
