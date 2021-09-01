@@ -57,9 +57,10 @@ class BucketBot:
         return self.api.create_limit_buy_order(self.symbol, quantity, targetPrice)
 
     def BucketOrderLoop(self):
+        TRY_COUNT = 5
+        countOfFailure = 0
         order = None
         api = self.lib.api
-        countOfFailure = 0
 
         while True:
             now = dt.datetime.now()
@@ -91,7 +92,7 @@ class BucketBot:
             except Exception as ex:
                 print("Exception failure count: ", countOfFailure, ex)
                 countOfFailure += 1
-                if countOfFailure >= 5:
+                if countOfFailure >= TRY_COUNT:
                     raise ex  # 30초 뒤에 시도해 보고 연속 5번 exception 나면 매매를 종료한다.
 
             time.sleep(1)   # 1초에 두 번 취소->주문 되는걸 방지하기 위해 1초를 쉰다. 
@@ -159,6 +160,7 @@ class Position:
         return pnl
 
     def waitForPositionClosed(self):
+        TRY_COUNT = 5
         countOfFailure = 0
 
         # 익절 주문 걸고 시작
@@ -193,7 +195,7 @@ class Position:
             except Exception as ex:
                 print("Exception failure count: ", countOfFailure, ex)
                 countOfFailure += 1
-                if countOfFailure >= 5:
+                if countOfFailure >= TRY_COUNT:
                     raise ex  # 30초 뒤에 시도해 보고 연속 5번 exception 나면 매매를 종료한다.
 
             time.sleep(5)
