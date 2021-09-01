@@ -13,21 +13,20 @@ class DITrader:
 
         pathHere = os.path.dirname(__file__)
         filePath = os.path.join(pathHere, 'api.txt')
-        self.lib = Lib(filePath)
+        Lib.init(filePath)
 
     def startTrading(self, bucketJs):
         # 1. DI trading
         #
 
         # 2. Bucket trading
-        bucketBot = BucketBot(self.symbol, self.lib)
+        bucketBot = BucketBot(self.symbol)
         bucketBot.start(bucketJs)
         
 
 class BucketBot:
-    def __init__(self, symbol, lib):
+    def __init__(self, symbol):
         self.symbol = symbol
-        self.lib = lib
 
     def stop(self):
         pass
@@ -42,7 +41,6 @@ class BucketBot:
                 beepy.beep(sound="ready")
                 
                 position = Position(
-                    lib = self.lib,
                     symbol = self.symbol,
                     order = order, 
                     bucketJs = bucketJs)
@@ -55,11 +53,11 @@ class BucketBot:
         print("## 매매 종료 : ", self.symbol)
 
     def orderBuyTargetDI(self):
-        curPrice = self.lib.getCurrentPrice(self.symbol)
-        ma20 = self.lib.get20Ma(self.symbol, curPrice)
+        curPrice = Lib.getCurrentPrice(self.symbol)
+        ma20 = Lib.get20Ma(self.symbol, curPrice)
         targetPrice = ma20 * (1 - self.targetDI)
-        quantity = self.lib.getQuantity(curPrice, self.marginRatio)
-        return self.lib.api.create_limit_buy_order(self.symbol, quantity, targetPrice)
+        quantity = Lib.getQuantity(curPrice, self.marginRatio)
+        return Lib.api.create_limit_buy_order(self.symbol, quantity, targetPrice)
 
     def BucketOrderLoop(self):
         countOfFailure = 0
@@ -76,14 +74,14 @@ class BucketBot:
             
             try:
                 if order != None:
-                    order = self.lib.api.fetch_order(order['id'], self.symbol)
+                    order = Lib.api.fetch_order(order['id'], self.symbol)
 
                     # 바스켓 매수 체결됨
-                    if self.lib.hasClosed(order):
+                    if Lib.hasClosed(order):
                         print(nowStr, self.symbol, "[바스켓] 체결되었다: ", order['price'])
                         break
                     else:   # 미체결 매수취소
-                        self.lib.api.cancel_order(order['id'], self.symbol)
+                        Lib.api.cancel_order(order['id'], self.symbol)
                         order = None
 
                 # (재) 매수 주문
@@ -106,8 +104,7 @@ class BucketBot:
 
 
 class Position:
-    def __init__(self, lib, symbol, order, bucketJs):    
-        self.lib = lib
+    def __init__(self, symbol, order, bucketJs):    
         self.symbol = symbol
         self.positionOrder = order
         self.profitPrice = order['price'] * (1 + bucketJs['profitPercent'])
@@ -117,9 +114,9 @@ class Position:
         self.profitOrder = None
     
     def orderProfit(self):
-        self.profitOrder = self.lib.api.create_limit_sell_order(
+        self.profitOrder = Lib.api.create_limit_sell_order(
             self.symbol, 
-            self.positionOrder['filled'], 
+            self.positionOrder['filled'],
             self.profitPrice)
     
     def orderStoploss(self, stoplossPercent):
@@ -129,7 +126,7 @@ class Position:
         # 스탑 가격이 평단가보다 높을 때는 수익권일 때만 주문이 들어간다.
         params = {'stopPrice': stoplossPrice}
 
-        self.stopOrder = self.lib.api.createOrder(
+        self.stopOrder = Lib.api.createOrder(
             self.symbol,
             'stop_market',
             'sell',
@@ -138,14 +135,14 @@ class Position:
             params)
 
     def isStopTriggerPriceOver(self):
-        return self.lib.getCurrentPrice(self.symbol) > self.triggerPriceForStoploss
+        return Lib.getCurrentPrice(self.symbol) > self.triggerPriceForStoploss
 
     def hasProfitOrderClosed(self):
-        self.profitOrder = self.lib.api.fetch_order(self.profitOrder['id'], self.symbol)
+        self.profitOrder = Lib.api.fetch_order(self.profitOrder['id'], self.symbol)
         return self.profitOrder['status'] == 'closed'
 
     def hasStopOrderClosed(self):
-        self.stopOrder = self.lib.api.fetch_order(self.stopOrder['id'], self.symbol)
+        self.stopOrder = Lib.api.fetch_order(self.stopOrder['id'], self.symbol)
         return self.stopOrder['status'] == 'closed'
     
     def getPNL(self, nowStr):
@@ -179,19 +176,19 @@ class Position:
             try:
                 # 본절 로스 조건부 주문 (1회)
                 if self.stopOrder == None and self.isStopTriggerPriceOver():
-                    self.orderStoploss(1.001)
+                    self.stopOrder = self.orderStoploss(1.001)
                     print(nowStr, self.symbol, "[바스켓] 본절로스 주문: ", self.stopOrder['price'])
 
                 # 익절 체결됐나
                 if self.hasProfitOrderClosed():
                     if self.stopOrder != None:
-                        self.lib.api.cancel_order(self.stopOrder['id'], self.symbol)
+                        Lib.api.cancel_order(self.stopOrder['id'], self.symbol)
                     break
 
                 # 스탑로스 체결됐나
                 if self.stopOrder != None and self.hasStopOrderClosed():
                     if self.profitOrder != None:
-                        self.lib.api.cancel_order(self.profitOrder['id'], self.symbol)
+                        Lib.api.cancel_order(self.profitOrder['id'], self.symbol)
                     break
 
                 if countOfFailure > 0:

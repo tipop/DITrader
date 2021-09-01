@@ -23,9 +23,9 @@
 
     "bucket": {
         "targetDI": 0.03,
-        "profitPercent": 0.011,
+        "profitPercent": 0.013,
         "marginRatio": 0.5,
-        "stoplossTriggerPercent": 0.005
+        "stoplossTriggerPercent": 0.007
     },
     "catch": {
         "stoplossTriggerPercent": 0.005,
