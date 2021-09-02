@@ -5,25 +5,7 @@ import time
 import beepy
 from loguru import logger
 
-TRY_COUNT = 5
-
-class DITrader:
-    def __init__(self, symbol, isBucketMode):
-        self.symbol = symbol
-        self.isBucketMode = isBucketMode
-
-        pathHere = os.path.dirname(__file__)
-        filePath = os.path.join(pathHere, 'api.txt')
-        Lib.init(filePath)
-
-    def startTrading(self, bucketJs):
-        # 1. DI trading
-        #
-
-        # 2. Bucket trading
-        bucketBot = BucketBot(self.symbol)
-        bucketBot.start(bucketJs)
-        
+TRY_COUNT = 5        
 
 class BucketBot:
     def __init__(self, symbol):
