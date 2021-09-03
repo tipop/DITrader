@@ -1,2 +1,4 @@
 logs/log.log
 *.pyc
+lib/*.pyc
+lib/__pycache__/*.pyc
