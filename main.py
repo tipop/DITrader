@@ -40,14 +40,13 @@ def parseCatchOption(jsCatch):
 #################### main ####################
 js = readJsonSetting("trade_setting.json")
 Lib.init(js['binanceApi']['key'], js['binanceApi']['secret'])
+logger.add('logs/log.log', level='INFO')
+logger.info("CatchBot: {} | BucketBot: {} | Symbols: {}", js['useCatchBot'], js['useBucketBot'], len(js['symbols']))
+
 
 telegramBot = telegram.Bot(js['telegramToken'])
 updates = telegramBot.getUpdates()
 #telegramBot.sendMessage(chat_id = updates[0].message.chat_id, text = "")
-
-logger.add('logs/log.log', level='INFO')
-logger.info("CatchBot: {} | BucketBot: {} | Symbols: {}", js['useCatchBot'], js['useBucketBot'], len(js['symbols']))
-
 
 
 if js['useCatchBot']:

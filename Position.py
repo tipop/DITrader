@@ -80,6 +80,7 @@ class Position:
             try:
                 # 본절 로스 조건부 주문 (1회)
                 if self.stopOrder == None and self.isStopTriggerPriceOver():
+                    logger.info("{} | 본절로스 주문: ", self.symbol)
                     self.orderStoploss(1.001)
                     logger.info("{} | 본절로스 주문: {}", self.symbol, self.stopOrder['price'])
 

@@ -57,9 +57,9 @@ class CatchBot:
         order = None
 
         while True:
-            #if dt.datetime.now().second != 59:
-            #    time.sleep(0.5)
-            #    continue
+            if dt.datetime.now().second != 0:
+                time.sleep(0.5)
+                continue
 
             try:
                 # 1분봉 종료 시 이격도를 만족하면 지정가 매수한다.

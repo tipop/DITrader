@@ -14,6 +14,8 @@ class BucketBot:
         pass
 
     def start(self, bucketJs):
+        logger.info("{} | Start bucketBot", self.symbol)
+
         self.targetDI = bucketJs['targetDI']
         self.marginRatio = bucketJs['marginRatio']
 
@@ -34,9 +36,8 @@ class BucketBot:
                 logger.error("{} | BucketBot 종료. Exception: {}", self.symbol, repr(ex))
                 break
 
-    def orderBuyTargetDI(self):
-        curPrice = Lib.getCurrentPrice(self.symbol)
-        ma20 = Lib.get20Ma(self.symbol, curPrice)
+    def orderBuyTargetDI(self, curPrice, ma20):
+        
         targetPrice = ma20 * (1 - self.targetDI)
         quantity = Lib.getQuantity(curPrice, self.marginRatio)
         return Lib.api.create_limit_buy_order(self.symbol, quantity, targetPrice)
@@ -65,7 +66,10 @@ class BucketBot:
 
                 # (재) 매수 주문
                 if order == None:
-                    order = self.orderBuyTargetDI()
+                    curPrice = Lib.getCurrentPrice(self.symbol)
+                    ma20 = Lib.get20Ma(self.symbol, curPrice)
+                    if curPrice < ma20: # 20 이평 아래 있을 때만 바스켓 매수 주문을 낸다.
+                        order = self.orderBuyTargetDI(curPrice, ma20)
 
                 if countOfFailure > 0:
                     logger.info("{} | 에러 복구 됨", self.symbol)
