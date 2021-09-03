@@ -35,7 +35,7 @@
         {"targetDI": 0.02, "marginRatio": 0.5, "profitPercent": 0.01, "stoplossTriggerPercent": 0.005}
     ,
     "catch": [
-        {"targetDI": 0.03, "marginRatio": 3, "profitPercent": 0.016, "stoplossTriggerPercent": 0.007},
+        {"targetDI": 0.03, "marginRatio": 3, "profitPercent": 0.02, "stoplossTriggerPercent": 0.008},
         {"targetDI": 0.033, "marginRatio": 5, "profitPercent": 0.015, "stoplossTriggerPercent": 0.005},
         {"targetDI": 0.045, "marginRatio": 10, "profitPercent": 0.03, "stoplossTriggerPercent": 0.005}
     ]
