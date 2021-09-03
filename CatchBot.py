@@ -13,7 +13,7 @@ class CatchBot:
         self.option = option
 
     def start(self):
-        logger.info("{} | Start catching", self.symbol)
+        logger.info("{:10} | Start catching", self.symbol)
 
         while True:
             try:
@@ -23,10 +23,10 @@ class CatchBot:
                 position = Position(order, self.option)
                     
                 pnl = position.waitForPositionClosed()  # 포지션이 종료되면 리턴된다. (익절이든 본절/손절이든)
-                logger.info("{} | 포지션 종료. PNL: {}%", self.symbol, pnl)
+                logger.info("{:10} | 포지션 종료. PNL: {:10.5f}%", self.symbol, pnl)
             
             except Exception as ex:
-                logger.error("{} | CatchBot 종료. Exception: {}", self.symbol, repr(ex))
+                logger.error("{:10} | CatchBot 종료. Exception: {}", self.symbol, repr(ex))
                 break
 
     def waitForBuyClosed(self, order, waitSeconds):
@@ -69,24 +69,24 @@ class CatchBot:
                 # 0.3%를 더한 이유는 밑꼬리가 0.5초 만에 순식간에 달리고 올라가는 경우가 많기 때문에 타겟 가격 0.3% 근처에 오면 미리 매수 주문을 넣어 두고 체결 안되면 취소하는게 낫다.
                 if (targetPrice * 1.003) >= curPrice:
                     order = self.orderBuyLimit(targetPrice)
-                    logger.info("{} | 캐치 매수 주문: {}", self.symbol, targetPrice)
+                    logger.info("{:10} | 캐치 매수 주문: {:10.5f}", self.symbol, targetPrice)
                     beepy.beep(sound="coin")
                     order = self.waitForBuyClosed(order, WAIT_SECONDS_FOR_BUY)
                     
                     if Lib.hasClosed(order):
-                        logger.info("{} | 매수 체결: {}", self.symbol, order['price'])
+                        logger.info("{:10} | 매수 체결됨: {:10.5f}", self.symbol, order['price'])
                         break   # 매수 체결되었으므로 캐치 종료
                     else:
-                        logger.info("{} | {}초 동안 미체결되어 매수 취소함", self.symbol, WAIT_SECONDS_FOR_BUY)
+                        logger.info("{:10} | {}초 동안 미체결되어 매수 취소함", self.symbol, WAIT_SECONDS_FOR_BUY)
                         Lib.api.cancel_order(order['id'], self.symbol)  # 30초 동안 체결되지 않으면 주문 취소한다.
 
                 if countOfFailure > 0:
-                    logger.info("{} | 에러 복구 됨", self.symbol)
+                    logger.info("{:10} | 에러 복구 됨", self.symbol)
                     countOfFailure = 0
 
             except Exception as ex:
                 countOfFailure += 1
-                logger.warning("{} | {} Raised an exception. {}", self.symbol, countOfFailure, repr(ex))
+                logger.warning("{:10} | {} Raised an exception. {}", self.symbol, countOfFailure, repr(ex))
                 if countOfFailure >= TRY_COUNT:
                     raise ex  # 1초 뒤에 다시 시도해 보고 연속 5번 exception 나면 매매를 종료한다.
 

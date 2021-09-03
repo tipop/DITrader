@@ -2,8 +2,8 @@
 # 2021.08.28 ~ 
 # Shin, SangYun
 
+import sys
 import json
-import os.path
 import threading
 from BucketBot import *
 from CatchBot import *
@@ -39,7 +39,6 @@ def parseCatchOption(jsCatch):
     return option
 
 def printBucketOption(jsBucket):
-    # {"targetDI": 0.02, "marginRatio": 0.5, "profitPercent": 0.01, "stoplossTriggerPercent": 0.005}
     logger.info("------ Bucket Bot ------ ")
     logger.info("TargetDI: {}%", jsBucket['targetDI'] * 100)
     logger.info("Profit: {}%", jsBucket['profitPercent'] * 100)
@@ -50,7 +49,10 @@ def printBucketOption(jsBucket):
 #################### main ####################
 js = readJsonSetting("trade_setting.json")
 Lib.init(js['binanceApi']['key'], js['binanceApi']['secret'])
-logger.add('logs/log.log', level='INFO')
+
+logger.remove()
+logger.add('logs/log.log', level='DEBUG')
+logger.add(sys.stderr, level="INFO")
 logger.info("CatchBot: {} | BucketBot: {} | Symbols: {}", js['useCatchBot'], js['useBucketBot'], len(js['symbols']))
 
 telegramBot = telegram.Bot(js['telegramToken'])
