@@ -6,15 +6,10 @@ import pprint
 import datetime
 
 class Lib:
-    def init(apiKeyFilePath):
+    def init(apiKey, secret):
         # binance 객체 생성
-        with open(apiKeyFilePath, "r") as f:
-            lines = f.readlines()
-            api_key = lines[0].strip()
-            secret = lines[1].strip()
-
         Lib.api = ccxt.binance(config={
-            'apiKey': api_key,
+            'apiKey': apiKey,
             'secret': secret,
             'enableRateLimit': True,        # 시장가로 주문이 제출되는 것을 방지하기 위한 'Post-only' 설정값
             'options': { 

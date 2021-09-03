@@ -9,16 +9,12 @@ from BucketBot import *
 from CatchBot import *
 from OrderInfo import *
 from loguru import logger
+import telegram
 
 def readJsonSetting(jsonFile):
     with open(jsonFile, "r") as file:
         return json.load(file)
-
-def initApi(apiFile):
-    pathHere = os.path.dirname(__file__)
-    filePath = os.path.join(pathHere, apiFile)
-    Lib.init(filePath)
-
+        
 def startBucketBot(symbol, bucketJs):
     BucketBot(symbol).start(bucketJs)
 
@@ -40,11 +36,18 @@ def parseCatchOption(jsCatch):
 
     return option
 
+
 #################### main ####################
 js = readJsonSetting("trade_setting.json")
-initApi('api.txt')
+Lib.init(js['binanceApi']['key'], js['binanceApi']['secret'])
+
+telegramBot = telegram.Bot(js['telegramToken'])
+updates = telegramBot.getUpdates()
+#telegramBot.sendMessage(chat_id = updates[0].message.chat_id, text = "")
+
 logger.add('logs/log.log', level='INFO')
 logger.info("CatchBot: {} | BucketBot: {} | Symbols: {}", js['useCatchBot'], js['useBucketBot'], len(js['symbols']))
+
 
 
 if js['useCatchBot']:

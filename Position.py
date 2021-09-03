@@ -21,6 +21,8 @@ class Position:
             self.symbol, 
             self.positionOrder['filled'],
             self.profitPrice)
+
+        return self.profitOrder
     
     def orderStoploss(self, stoplossPercent):
         stoplossPrice = self.positionOrder['price'] * stoplossPercent
@@ -36,6 +38,8 @@ class Position:
             self.positionOrder['filled'],
             None,
             params)
+
+        return self.stopOrder
 
     def isStopTriggerPriceOver(self):
         return Lib.getCurrentPrice(self.symbol) > self.triggerPriceForStoploss
@@ -76,7 +80,7 @@ class Position:
             try:
                 # 본절 로스 조건부 주문 (1회)
                 if self.stopOrder == None and self.isStopTriggerPriceOver():
-                    self.stopOrder = self.orderStoploss(1.001)
+                    self.orderStoploss(1.001)
                     logger.info("{} | 본절로스 주문: {}", self.symbol, self.stopOrder['price'])
 
                 # 익절 체결됐나

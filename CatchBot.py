@@ -77,11 +77,11 @@ class CatchBot:
                         logger.info("{} | 매수 체결: {}", self.symbol, order['price'])
                         break   # 매수 체결되었으므로 캐치 종료
                     else:
-                        logger.info("{} | {}초 동안 미체결되어 매수 취소함", self.info.symbol, WAIT_SECONDS_FOR_BUY)
+                        logger.info("{} | {}초 동안 미체결되어 매수 취소함", self.symbol, WAIT_SECONDS_FOR_BUY)
                         Lib.api.cancel_order(order['id'], self.symbol)  # 30초 동안 체결되지 않으면 주문 취소한다.
 
                 if countOfFailure > 0:
-                    logger.info("{} | 에러 복구 됨", self.info.symbol)
+                    logger.info("{} | 에러 복구 됨", self.symbol)
                     countOfFailure = 0
 
             except Exception as ex:
@@ -90,6 +90,6 @@ class CatchBot:
                 if countOfFailure >= TRY_COUNT:
                     raise ex  # 1초 뒤에 다시 시도해 보고 연속 5번 exception 나면 매매를 종료한다.
 
-            time.sleep(10) # 1초에 두 번 취소->주문 되는걸 방지하기 위해 1초를 쉰다.
+            time.sleep(1) # 1초에 두 번 취소->주문 되는걸 방지하기 위해 1초를 쉰다.
 
         return order

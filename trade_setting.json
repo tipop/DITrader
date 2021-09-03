@@ -20,6 +20,13 @@
         "SOL/USDT",
         "XRP/USDT"
     ],
+    
+    "binanceApi": {
+        "key": "U4dxVzVtWtlu778JK53LwEjFBImpoO8XLiXalWlzeszEPptzLAj557lx3wRm3YRc",
+        "secret": "1MwOpUJqY6HyIrkXHQbixZJQcOF9EIHAhsJllTzFJOI1dGMRTWkk2z9Jo7Ly27CJ"
+    },
+
+    "telegramToken": "1809950671:AAExYTyxWpaYu5-bZ87wFKog_Ru9wYwRWCM",
 
     "useCatchBot": true,
     "useBucketBot": false,
@@ -28,7 +35,7 @@
         {"targetDI": 0.02, "marginRatio": 0.05, "profitPercent": 0.01, "stoplossTriggerPercent": 0.005}
     ,
     "catch": [
-        {"targetDI": 0.02, "marginRatio": 1, "profitPercent": 0.012, "stoplossTriggerPercent": 0.005},
+        {"targetDI": 0.01, "marginRatio": 0.05, "profitPercent": 0.006, "stoplossTriggerPercent": 0.003},
         {"targetDI": 0.033, "marginRatio": 5, "profitPercent": 0.015, "stoplossTriggerPercent": 0.005},
         {"targetDI": 0.045, "marginRatio": 10, "profitPercent": 0.03, "stoplossTriggerPercent": 0.005}
     ]
