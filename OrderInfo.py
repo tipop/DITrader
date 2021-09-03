@@ -1,6 +1,5 @@
 class OrderInfo:
-    def __init__(self, symbol, targetDI, marginRatio, profitPercent, stoplossTriggerPercent, stoplossPercent):
-        self.symbol = symbol
+    def __init__(self, targetDI, marginRatio, profitPercent, stoplossTriggerPercent, stoplossPercent):
         self.targetDI = targetDI
         self.marginRatio = marginRatio
         self.profitPercent = profitPercent

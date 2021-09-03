@@ -21,8 +21,11 @@
         "XRP/USDT"
     ],
 
+    "useCatchBot": true,
+    "useBucketBot": false,
+
     "bucket":
-        {"targetDI": 0.02, "marginRatio": 0.5, "profitPercent": 0.01, "stoplossTriggerPercent": 0.005}
+        {"targetDI": 0.02, "marginRatio": 0.05, "profitPercent": 0.01, "stoplossTriggerPercent": 0.005}
     ,
     "catch": [
         {"targetDI": 0.02, "marginRatio": 1, "profitPercent": 0.012, "stoplossTriggerPercent": 0.005},

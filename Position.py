@@ -7,12 +7,11 @@ from loguru import logger
 TRY_COUNT = 5 
 
 class Position:
-    def __init__(self, order, orderInfo):
-        self.info = orderInfo
-        self.symbol = orderInfo.symbol
+    def __init__(self, order, option):
+        self.symbol = order['symbol']
         self.positionOrder = order
-        self.profitPrice = order['price'] * (1 + orderInfo.profitPercent)
-        self.triggerPriceForStoploss = order['price'] * (1 + orderInfo.stoplossTriggerPercent)
+        self.profitPrice = order['price'] * (1 + option.profitPercent)
+        self.triggerPriceForStoploss = order['price'] * (1 + option.stoplossTriggerPercent)
         
         self.stopOrder = None
         self.profitOrder = None
@@ -98,7 +97,7 @@ class Position:
 
             except Exception as ex:
                 countOfFailure += 1
-                logger.warning("{} | {} Raised an exception. {}", self.info.symbol, countOfFailure, repr(ex))
+                logger.warning("{} | {} Raised an exception. {}", self.symbol, countOfFailure, repr(ex))
                 if countOfFailure >= TRY_COUNT:
                     raise ex  # 30초 뒤에 시도해 보고 연속 5번 exception 나면 매매를 종료한다.
 

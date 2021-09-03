@@ -8,7 +8,6 @@ import threading
 from BucketBot import *
 from CatchBot import *
 from OrderInfo import *
-
 from loguru import logger
 
 def readJsonSetting(jsonFile):
@@ -23,39 +22,40 @@ def initApi(apiFile):
 def startBucketBot(symbol, bucketJs):
     BucketBot(symbol).start(bucketJs)
 
-def startCatchBot(orderInfo, notUsed):
-    CatchBot(orderInfo).start()
+def startCatchBot(symbol, option):
+    CatchBot(symbol, option).start()
 
-def initLogging(bucketJs, coinList):
-    logger.add('logs/log.log', level='INFO')
-    logger.info("TargetDI: {}%", bucketJs['targetDI']*100)
-    logger.info("profit: {}%", bucketJs['profitPercent']*100)
-    logger.info("marginRatio: {}%", bucketJs['marginRatio']*100)
-    logger.info("stoplossTrigger: {}%", bucketJs['stoplossTriggerPercent']*10)
-    logger.info("Target Symbols: {}", len(coinList))
-    #logger.info(coinList)
+def parseCatchOption(jsCatch):
+    option = OrderInfo(
+        targetDI = jsCatch['targetDI'],
+        marginRatio = jsCatch['marginRatio'],
+        profitPercent = jsCatch['profitPercent'],
+        stoplossTriggerPercent = jsCatch['stoplossTriggerPercent'],
+        stoplossPercent = 0.001)
 
+    logger.info("TargetDI: {}%", option.targetDI * 100)
+    logger.info("Profit: {}%", option.profitPercent * 100)
+    logger.info("StoplossTrigger: {}%", option.stoplossTriggerPercent * 100)
+    logger.info("MarginRatio: {}%", option.marginRatio * 100)
+
+    return option
 
 #################### main ####################
 js = readJsonSetting("trade_setting.json")
-bucketJs = js['bucket']
-catchJs = js['catch']
-coinList = js["symbols"]
-initLogging(bucketJs, coinList)
 initApi('api.txt')
+logger.add('logs/log.log', level='INFO')
+logger.info("CatchBot: {} | BucketBot: {} | Symbols: {}", js['useCatchBot'], js['useBucketBot'], len(js['symbols']))
 
 
-for coin in coinList:
-    #bucketThread = threading.Thread(target = startBucketBot, args=(coin, bucketJs))
-    #bucketThread.start()
+if js['useCatchBot']:
+    option = parseCatchOption(js['catch'][0])   # 1번 DI 타겟
 
-    orderInfo = OrderInfo(
-    symbol = coin,
-    targetDI = catchJs[0]['targetDI'],
-    marginRatio = catchJs[0]['marginRatio'],
-    profitPercent = catchJs[0]['profitPercent'],
-    stoplossTriggerPercent = catchJs[0]['stoplossTriggerPercent'],
-    stoplossPercent = 0.001)
+    for coin in js["symbols"]:
+        t = threading.Thread(target = startCatchBot, args = (coin, option))
+        t.start()
 
-    catchThread = threading.Thread(target = startCatchBot, args = (orderInfo, None))
-    catchThread.start()
+
+if js['useBucketBot']:
+    for coin in js["symbols"]:
+        t = threading.Thread(target = startBucketBot, args=(coin, js['bucket']))
+        t.start()

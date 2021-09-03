@@ -68,7 +68,7 @@ class BucketBot:
                     order = self.orderBuyTargetDI()
 
                 if countOfFailure > 0:
-                    logger.info("{} | 에러 복구 됨" + self.symbol)
+                    logger.info("{} | 에러 복구 됨", self.symbol)
                     countOfFailure = 0
             
             except Exception as ex:
