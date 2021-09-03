@@ -24,10 +24,7 @@ class BucketBot:
                 order = self.BucketOrderLoop()   # 바스켓이 체결되면 리턴된다.
                 beepy.beep(sound="ready")
                 
-                position = Position(
-                    symbol = self.symbol,
-                    order = order, 
-                    bucketJs = bucketJs)
+                position = Position(order = order, bucketJs = bucketJs)
                     
                 pnl = position.waitForPositionClosed()  # 포지션이 종료되면 리턴된다. (익절이든 본절/손절이든)
                 logger.info("{:10} | 포지션 종료. PNL: {:10.5f}%", self.symbol, pnl)
@@ -48,7 +45,7 @@ class BucketBot:
 
         while True:
             now = dt.datetime.now()
-            if now.second != 59 and now.second != 29:
+            if now.second != 58 and now.second != 28:
                 time.sleep(0.5)
                 continue
 

@@ -57,7 +57,7 @@ class CatchBot:
         order = None
 
         while True:
-            if dt.datetime.now().second != 0:
+            if dt.datetime.now().second != 59:
                 time.sleep(0.5)
                 continue
 
@@ -67,7 +67,8 @@ class CatchBot:
                 targetPrice = self.getTargetDIPrice(curPrice)
 
                 # 0.3%를 더한 이유는 밑꼬리가 0.5초 만에 순식간에 달리고 올라가는 경우가 많기 때문에 타겟 가격 0.3% 근처에 오면 미리 매수 주문을 넣어 두고 체결 안되면 취소하는게 낫다.
-                if (targetPrice * 1.003) >= curPrice:
+                #if (targetPrice * 1.003) >= curPrice:
+                if targetPrice >= curPrice:
                     order = self.orderBuyLimit(targetPrice)
                     logger.info("{:10} | 캐치 매수 주문: {:10.5f}", self.symbol, targetPrice)
                     beepy.beep(sound="coin")
