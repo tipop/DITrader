@@ -55,9 +55,9 @@ logger.add('logs/log.log', level='DEBUG')
 logger.add(sys.stderr, level="INFO")
 logger.info("CatchBot: {} | BucketBot: {} | Symbols: {}", js['useCatchBot'], js['useBucketBot'], len(js['symbols']))
 
-telegramBot = telegram.Bot(js['telegramToken'])
-updates = telegramBot.getUpdates()
-#telegramBot.sendMessage(chat_id = updates[0].message.chat_id, text = "")
+#telegramBot = telegram.Bot(js['telegramToken'])
+#updates = telegramBot.getUpdates()
+#telegramBot.sendMessage(chat_id = updates[0].message.chat_id, text = "시작")
 
 
 if js['useCatchBot']:
