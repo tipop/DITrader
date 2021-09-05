@@ -9,65 +9,63 @@ from BucketBot import *
 from CatchBot import *
 from OrderInfo import *
 from loguru import logger
-import telegram
+from TelegramBot import *
 
 def readJsonSetting(jsonFile):
     with open(jsonFile, "r") as file:
         return json.load(file)
-        
-def startBucketBot(symbol, bucketJs):
-    BucketBot(symbol).start(bucketJs)
+
+def parseJsOption(jsOption):
+    return OrderInfo(
+        targetDI = jsOption['targetDI'],
+        marginRatio = jsOption['marginRatio'],
+        profitPercent = jsOption['profitPercent'],
+        stoplossTriggerPercent = jsOption['stoplossTriggerPercent'],
+        stoplossPercent = 0.001)
+
+def startBucketBot(symbol, option):
+    BucketBot(symbol, option).start()
 
 def startCatchBot(symbol, option):
     CatchBot(symbol, option).start()
 
-def parseCatchOption(jsCatch):
-    option = OrderInfo(
-        targetDI = jsCatch['targetDI'],
-        marginRatio = jsCatch['marginRatio'],
-        profitPercent = jsCatch['profitPercent'],
-        stoplossTriggerPercent = jsCatch['stoplossTriggerPercent'],
-        stoplossPercent = 0.001)
+def getStartMsg():
+    return "Start!!\nCatch: {} | Bucket: {} | Symbols: {}\n\
+    BucketBot\n\
+        - TargetDI: {:.1f}%\n\
+        - profit: {:.1f}%\n\
+        - stoplossTrigger: {:.1f}%\n\
+        - marginRatio: {:.1f}%\n\
+    CatchBot\n\
+        - TargetDI: {:.1f}%\n\
+        - profit: {:.1f}%\n\
+        - stoplossTrigger: {:.1f}%\n\
+        - marginRatio: {:.1f}%".format(js['useCatchBot'], js['useBucketBot'], len(js['symbols']), 
+            bucketOption.targetDI*100, bucketOption.profitPercent*100, bucketOption.stoplossTriggerPercent*100, bucketOption.marginRatio*100,
+            catchOption.targetDI*100, catchOption.profitPercent*100, catchOption.stoplossTriggerPercent*100, catchOption.marginRatio*100)
 
-    logger.info("------ Catch Bot ------ ")
-    logger.info("TargetDI: {}%", option.targetDI * 100)
-    logger.info("Profit: {}%", option.profitPercent * 100)
-    logger.info("StoplossTrigger: {}%", option.stoplossTriggerPercent * 100)
-    logger.info("MarginRatio: {}%", option.marginRatio * 100)
-    logger.info("---------------------- ")
-
-    return option
-
-def printBucketOption(jsBucket):
-    logger.info("------ Bucket Bot ------ ")
-    logger.info("TargetDI: {}%", jsBucket['targetDI'] * 100)
-    logger.info("Profit: {}%", jsBucket['profitPercent'] * 100)
-    logger.info("StoplossTrigger: {}%", jsBucket['stoplossTriggerPercent'] * 100)
-    logger.info("MarginRatio: {}%", jsBucket['marginRatio'] * 100)
-    logger.info("---------------------- ")
 
 #################### main ####################
 js = readJsonSetting("trade_setting.json")
 Lib.init(js['binanceApi']['key'], js['binanceApi']['secret'])
+catchOption = parseJsOption(js['catch'][0])   # 1번 DI 타겟
+bucketOption = parseJsOption(js['bucket'])
 
 logger.remove()
-logger.add('logs/log.log', level='DEBUG')
-logger.add(sys.stderr, level="INFO")
+logger.add('logs/log.log', level = js['log']['fileLevel'])
+logger.add(sys.stderr, level = js['log']['consoleLevel'])
 logger.info("CatchBot: {} | BucketBot: {} | Symbols: {}", js['useCatchBot'], js['useBucketBot'], len(js['symbols']))
-
-#telegramBot = telegram.Bot(js['telegramToken'])
-#updates = telegramBot.getUpdates()
-#telegramBot.sendMessage(chat_id = updates[0].message.chat_id, text = "시작")
-
+TelegramBot.init(js['telegramToken'])
 
 if js['useCatchBot']:
-    option = parseCatchOption(js['catch'][0])   # 1번 DI 타겟
     for coin in js["symbols"]:
-        t = threading.Thread(target = startCatchBot, args = (coin, option))
-        t.start()
+        threading.Thread(target = startCatchBot, args = (coin, catchOption)).start()
 
-if js['useBucketBot']:
-    printBucketOption(js['bucket'])
+if js['useBucketBot']:    
     for coin in js["symbols"]:
-        t = threading.Thread(target = startBucketBot, args=(coin, js['bucket']))
-        t.start()
+        threading.Thread(target = startBucketBot, args=(coin, bucketOption)).start()
+
+msg = getStartMsg()
+logger.info("TelegramOn: {}", TelegramBot.isChatOn)
+logger.info(msg)
+TelegramBot.sendMsg(msg)

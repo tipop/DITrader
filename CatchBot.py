@@ -1,32 +1,39 @@
 from lib.ApiLib import *
 from Position import *
 import time
-import beepy
 from loguru import logger
 from OrderInfo import *
+from TelegramBot import *
 
 WAIT_SECONDS_FOR_BUY = 30
+
+isBuckbotSuspend = False
 
 class CatchBot:
     def __init__(self, symbol, option):
         self.symbol = symbol
         self.option = option
 
+    def stop(self):
+        pass
+
     def start(self):
-        logger.info("{:10} | Start catching", self.symbol)
+        logger.info("{:10} | Start CatchBot", self.symbol)
 
         while True:
             try:
                 order = self.waitForCatch() # 타겟 이격도 이상 급락하면 매수해서 리턴된다.
-                beepy.beep(sound="ready")
+                TelegramBot.sendMsg("{:10} | 캐치 매수 체결됨: {:10.5f}".format(self.symbol, order['price']))
 
                 position = Position(order, self.option)
                     
                 pnl = position.waitForPositionClosed()  # 포지션이 종료되면 리턴된다. (익절이든 본절/손절이든)
-                logger.info("{:10} | 포지션 종료. PNL: {:10.5f}%", self.symbol, pnl)
+                logger.info("{:10} | 캐치 포지션 종료. PNL: {:10.5f}%", self.symbol, pnl)
+                TelegramBot.sendMsg("{:10} | 캐치 포지션 종료. PNL: {:10.5f}%".format(self.symbol, pnl))
             
             except Exception as ex:
                 logger.error("{:10} | CatchBot 종료. Exception: {}", self.symbol, repr(ex))
+                TelegramBot.sendMsg("{:10} | CatchBot 종료. Exception: {}".format(self.symbol, repr(ex)))
                 break
 
     def waitForBuyClosed(self, order, waitSeconds):
@@ -53,8 +60,11 @@ class CatchBot:
         return Lib.api.create_limit_buy_order(self.symbol, quantity, price)
 
     def waitForCatch(self):
+        global isBuckbotSuspend
+
         countOfFailure = 0
         order = None
+        isBuckbotSuspend = False
 
         while True:
             if dt.datetime.now().second != 59:
@@ -62,24 +72,25 @@ class CatchBot:
                 continue
 
             try:
-                # 1분봉 종료 시 이격도를 만족하면 지정가 매수한다.
                 curPrice = Lib.getCurrentPrice(self.symbol)
                 targetPrice = self.getTargetDIPrice(curPrice)
-
-                # 0.3%를 더한 이유는 밑꼬리가 0.5초 만에 순식간에 달리고 올라가는 경우가 많기 때문에 타겟 가격 0.3% 근처에 오면 미리 매수 주문을 넣어 두고 체결 안되면 취소하는게 낫다.
-                #if (targetPrice * 1.003) >= curPrice:
+                
                 if targetPrice >= curPrice:
-                    order = self.orderBuyLimit(targetPrice)
+                    logger.debug("{:10} | 캐치 만족: {:10.5f}", self.symbol, targetPrice)
+                    isBuckbotSuspend = True # 매수할 때 잔고 여유가 있어야 하므로 bucketBot 대기 매수를 전부 취소하고 스레드를 일시 중지한다.
+                    time.sleep(1)
+
+                    order = self.orderBuyLimit(targetPrice)     # 1분봉 종료 시 이격도를 만족하면 지정가 매수한다.
                     logger.info("{:10} | 캐치 매수 주문: {:10.5f}", self.symbol, targetPrice)
-                    beepy.beep(sound="coin")
                     order = self.waitForBuyClosed(order, WAIT_SECONDS_FOR_BUY)
                     
                     if Lib.hasClosed(order):
-                        logger.info("{:10} | 매수 체결됨: {:10.5f}", self.symbol, order['price'])
+                        logger.info("{:10} | 캐치 매수 체결됨: {:10.5f}", self.symbol, order['price'])
                         break   # 매수 체결되었으므로 캐치 종료
                     else:
                         logger.info("{:10} | {}초 동안 미체결되어 매수 취소함", self.symbol, WAIT_SECONDS_FOR_BUY)
                         Lib.api.cancel_order(order['id'], self.symbol)  # 30초 동안 체결되지 않으면 주문 취소한다.
+                        isBuckbotSuspend = False
 
                 if countOfFailure > 0:
                     logger.info("{:10} | 에러 복구 됨", self.symbol)

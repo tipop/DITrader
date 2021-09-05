@@ -1,41 +1,42 @@
 from lib.ApiLib import *
 from Position import *
 import time
-import beepy
 from loguru import logger
+from TelegramBot import *
+import CatchBot
 
-TRY_COUNT = 5 
+TRY_COUNT = 5
 
 class BucketBot:
-    def __init__(self, symbol):
+    def __init__(self, symbol, option):
         self.symbol = symbol
+        self.option = option
 
     def stop(self):
         pass
 
-    def start(self, bucketJs):
-        logger.info("{:10} | Start bucketBot", self.symbol)
-
-        self.targetDI = bucketJs['targetDI']
-        self.marginRatio = bucketJs['marginRatio']
+    def start(self):
+        logger.info("{:10} | Start BucketBot", self.symbol)
 
         while True:
             try:
                 order = self.BucketOrderLoop()   # 바스켓이 체결되면 리턴된다.
-                beepy.beep(sound="ready")
+                TelegramBot.sendMsg("{:10} | 바스켓 매수 체결됨: {:10.5f}".format(self.symbol, order['price']))
                 
-                position = Position(order = order, bucketJs = bucketJs)
+                position = Position(order, self.option)
                     
                 pnl = position.waitForPositionClosed()  # 포지션이 종료되면 리턴된다. (익절이든 본절/손절이든)
-                logger.info("{:10} | 포지션 종료. PNL: {:10.5f}%", self.symbol, pnl)
+                logger.info("{:10} | 바스켓 포지션 종료. PNL: {:10.5f}%", self.symbol, pnl)
+                TelegramBot.sendMsg("{:10} | 바스켓 포지션 종료. PNL: {:10.5f}%".format(self.symbol, pnl))
 
             except Exception as ex:
                 logger.error("{:10} | BucketBot 종료. Exception: {}", self.symbol, repr(ex))
+                TelegramBot.sendMsg("{:10} | BucketBot 종료. Exception: {}".format(self.symbol, repr(ex)))
                 break
 
     def orderBuyTargetDI(self, curPrice, ma20):
-        targetPrice = ma20 * (1 - self.targetDI)
-        quantity = Lib.getQuantity(curPrice, self.marginRatio)
+        targetPrice = ma20 * (1 - self.option.targetDI)
+        quantity = Lib.getQuantity(curPrice, self.option.marginRatio)
         logger.debug("{:10} | 매수 주문: {:10.5f}", self.symbol, targetPrice)
         return Lib.api.create_limit_buy_order(self.symbol, quantity, targetPrice)
 
@@ -44,9 +45,18 @@ class BucketBot:
         order = None
 
         while True:
+            if CatchBot.isBuckbotSuspend == True:    # catch 포착되었으므로 여유 잔고를 비우기 위해 bucket 대기 매수 주문을 취소하고 일시중지한다.
+                if order != None:
+                    logger.info("{:10} | Suspended. 미체결 취소: {:10.5f}", self.symbol, order['price'])
+                    Lib.api.cancel_order(order['id'], self.symbol)
+                    order = None
+
+                time.sleep(10)
+                continue
+
             now = dt.datetime.now()
-            if now.second != 58 and now.second != 28:
-                time.sleep(0.5)
+            if now.second != 1:     #and now.second != 31:
+                time.sleep(0.2)     # time.sleep(0.5)
                 continue
 
             try:
