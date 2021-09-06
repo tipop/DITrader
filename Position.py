@@ -49,11 +49,13 @@ class Position:
         positions = Lib.api.fetch_positions(self.symbol)
         
         # 실제 리턴되는 position 객체에는 'status' 변수가 없다...
-        if len(positions) > 0: #and positions[0]['status'] == 'open':
-            logger.debug("{:10} 포지션 존재", self.symbol)
+        # 포지션이 종료되도 list에 항목이 남아있다.
+        # 포지션이 종료되면 side = None 로 변하기 때문에 이를 판단 기준으로 삼는다.
+        if len(positions) > 0 and positions[0]['side'] != None: 
+            #logger.debug("{:10} 포지션 존재", self.symbol)
             return True
 
-        logger.debug("{:10} 포지션 없음", self.symbol)
+        #logger.debug("{:10} 포지션 없음", self.symbol)
         return False
 
     def hasProfitOrderClosed(self):
@@ -79,32 +81,24 @@ class Position:
         return pnl
 
     def waitForPositionClosed(self):
+        SLEEP_SEC = 2
         countOfFailure = 0
-
+        
         # 익절 주문 걸고 시작
         self.orderProfit()
         logger.info("{:10} | 익절 주문: {:10.5f}", self.symbol, self.profitOrder['price'])
 
         while True:
             try:
-                if dt.datetime.now().second == 10:
-                    if not self.isPositionOpen():
-                        break
+                if not self.isPositionOpen():
+                    break
 
                 # 본절 로스 조건부 주문 (1회)
                 if self.stopOrder == None and self.isStopTriggerPriceOver():
                     self.orderStoploss(1.001)
                     #logger.info("{:10} | 본절로스 주문: {:10.5f}", self.symbol, self.stopOrder['price'])  => TypeError('unsupported format string passed to NoneType.__format__')
-                    logger.info("{:10} | 본절로스 주문: ", self.symbol)
-                    
-                # 익절 체결됐나
-                if self.hasProfitOrderClosed():
-                    break
-
-                # 스탑로스 체결됐나
-                if self.stopOrder != None and self.hasStopOrderClosed():
-                    break
-
+                    logger.info("{:10} | 본절로스 주문", self.symbol)
+            
                 if countOfFailure > 0:
                     logger.info("{:10} | 에러 복구 됨", self.symbol)
                     countOfFailure = 0
@@ -115,7 +109,6 @@ class Position:
                 if countOfFailure >= TRY_COUNT:
                     raise ex  # 30초 뒤에 시도해 보고 연속 5번 exception 나면 매매를 종료한다.
 
-            #time.sleep(5)
-            time.sleep(2)
+            time.sleep(SLEEP_SEC)
 
         return self.getPNL()

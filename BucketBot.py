@@ -37,7 +37,7 @@ class BucketBot:
     def orderBuyTargetDI(self, curPrice, ma20):
         targetPrice = ma20 * (1 - self.option.targetDI)
         quantity = Lib.getQuantity(curPrice, self.option.marginRatio)
-        logger.debug("{:10} | 매수 주문: {:10.5f}", self.symbol, targetPrice)
+        #logger.debug("{:10} | 매수 주문: {:10.5f}", self.symbol, targetPrice)
         return Lib.api.create_limit_buy_order(self.symbol, quantity, targetPrice)
 
     def BucketOrderLoop(self):
@@ -45,21 +45,21 @@ class BucketBot:
         order = None
 
         while True:
-            if CatchBot.isBuckbotSuspend == True:    # catch 포착되었으므로 여유 잔고를 비우기 위해 bucket 대기 매수 주문을 취소하고 일시중지한다.
-                if order != None:
-                    logger.info("{:10} | Suspended. 미체결 취소: {:10.5f}", self.symbol, order['price'])
-                    Lib.api.cancel_order(order['id'], self.symbol)
-                    order = None
-
-                time.sleep(10)
-                continue
-
-            now = dt.datetime.now()
-            if now.second != 1:     #and now.second != 31:
-                time.sleep(0.2)     # time.sleep(0.5)
-                continue
-
             try:
+                if CatchBot.isBuckbotSuspend == True:    # catch 포착되었으므로 여유 잔고를 비우기 위해 bucket 대기 매수 주문을 취소하고 일시중지한다.
+                    if order != None:
+                        logger.info("{:10} | Suspended. 미체결 취소: {:10.5f}", self.symbol, order['price'])
+                        Lib.api.cancel_order(order['id'], self.symbol)
+                        order = None
+
+                    time.sleep(10)
+                    continue
+
+                now = dt.datetime.now()
+                if now.second != 1:     #and now.second != 31:
+                    time.sleep(0.2)     # time.sleep(0.5)
+                    continue
+            
                 if order != None:
                     order = Lib.api.fetch_order(order['id'], self.symbol)
 
@@ -69,7 +69,7 @@ class BucketBot:
                             logger.info("{:10} | 매수 체결됨: {:10.5f}", self.symbol, order['price'])
                             break
                         else:   # 미체결 매수취소
-                            logger.debug("{:10} | 미체결 취소: {:10.5f}", self.symbol, order['price'])
+                            #logger.debug("{:10} | 미체결 취소: {:10.5f}", self.symbol, order['price'])
                             Lib.api.cancel_order(order['id'], self.symbol)
                             order = None
 
