@@ -44,7 +44,27 @@ def getStartMsg():
             bucketOption.targetDI*100, bucketOption.profitPercent*100, bucketOption.stoplossTriggerPercent*100, bucketOption.marginRatio*100,
             catchOption.targetDI*100, catchOption.profitPercent*100, catchOption.stoplossTriggerPercent*100, catchOption.marginRatio*100)
 
+def panicSellAlarm(symbols, deltaForAlarm):
+    prevPriceList = {}
 
+    for symbol in symbols:
+        prevPriceList[symbol] = Lib.getCurrentPrice(symbol)
+
+    while True:
+        time.sleep(5)
+
+        for symbol in symbols:
+            curPrice = Lib.getCurrentPrice(symbol)
+            prevPrice = prevPriceList[symbol]
+            deltaPercent = ((curPrice - prevPrice) / prevPrice) * 100
+            
+            if deltaPercent <= deltaForAlarm:
+                logger.info("{:10} | {:10.2f}% 급락", symbol, deltaPercent)
+                TelegramBot.sendMsg("{:10} | {:10.2f}% 급락".format(symbol, deltaPercent))
+
+            prevPriceList[symbol] = curPrice
+    
+    
 #################### main ####################
 js = readJsonSetting("trade_setting.json")
 Lib.init(js['binanceApi']['key'], js['binanceApi']['secret'])
@@ -69,3 +89,6 @@ msg = getStartMsg()
 logger.info("TelegramOn: {}", TelegramBot.isChatOn)
 logger.info(msg)
 TelegramBot.sendMsg(msg)
+
+if js['panicSellAlarm']['use']:
+    threading.Thread(target = panicSellAlarm, args=(js["symbols"], js['panicSellAlarm']['deltaPercent'])).start()

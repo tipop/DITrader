@@ -16,7 +16,8 @@ class Position:
         self.profitOrder = None
     
     def orderProfit(self):
-        params = {'reduceOnly': 'true'}
+        params = {'reduceOnly': True}
+
         self.profitOrder = Lib.api.create_limit_sell_order(
             self.symbol, 
             self.positionOrder['filled'],
@@ -30,7 +31,7 @@ class Position:
         
         #params = {'stopPrice': stopP, 'reduceOnly': True}
         # 스탑 가격이 평단가보다 높을 때는 수익권일 때만 주문이 들어간다.
-        params = {'stopPrice': stoplossPrice, 'reduceOnly': 'true'}
+        params = {'stopPrice': stoplossPrice, 'reduceOnly': True}
 
         self.stopOrder = Lib.api.createOrder(
             self.symbol,
@@ -51,7 +52,7 @@ class Position:
         # 실제 리턴되는 position 객체에는 'status' 변수가 없다...
         # 포지션이 종료되도 list에 항목이 남아있다.
         # 포지션이 종료되면 side = None 로 변하기 때문에 이를 판단 기준으로 삼는다.
-        if len(positions) > 0 and positions[0]['side'] != None: 
+        if positions != None and len(positions) > 0 and positions[0] != None and positions[0]['side'] != None: 
             #logger.debug("{:10} 포지션 존재", self.symbol)
             return True
 
@@ -65,10 +66,11 @@ class Position:
     def hasStopOrderClosed(self):
         self.stopOrder = Lib.api.fetch_order(self.stopOrder['id'], self.symbol)
         return self.stopOrder['status'] == 'closed'
-    
+
     def getPNL(self):
         pnl = 0
-        
+        ## TODO: 아래 코드는 동작하지 않는다. 각 order를 API로 물어보지 않고 값을 체크하고 있기 때문이다.
+        # position 객체로 변경할 때 한꺼번에 수정한다.
         if self.profitOrder != None and self.profitOrder['status'] == 'closed':
             pnl = (self.profitOrder['price'] - self.positionOrder['price']) / self.positionOrder['price']
             logger.info("{:10} | 익절 완료. PNL: {:10.5f}", self.symbol, pnl)
@@ -91,6 +93,9 @@ class Position:
         while True:
             try:
                 if not self.isPositionOpen():
+                    if self.hasProfitOrderClosed(): # 익절이 체결되면 스탑로스 주문이 자동으로 취소되지 않기에 수동으로 취소해야한다. (스탑로스가 체결되면 익절 주문은 자동 취소 됨)
+                        Lib.api.cancel_order(self.stopOrder['id'], self.symbol)
+                        logger.debug("{:10} | 스탑로스 취소: {:10.5f}", self.symbol, self.stopOrder['price'])
                     break
 
                 # 본절 로스 조건부 주문 (1회)
@@ -105,7 +110,7 @@ class Position:
 
             except Exception as ex:
                 countOfFailure += 1
-                logger.warning("{:10} | {} Raised an exception. {}", self.symbol, countOfFailure, repr(ex))
+                logger.warning("{:10} | {} Raised an exception: {}", self.symbol, countOfFailure, repr(ex))
                 if countOfFailure >= TRY_COUNT:
                     raise ex  # 30초 뒤에 시도해 보고 연속 5번 exception 나면 매매를 종료한다.
 
