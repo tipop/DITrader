@@ -41,7 +41,7 @@
     ],
     "panicSellAlarm": {
         "use": true,
-        "deltaPercent": -0.5
+        "deltaPercent": -1
     },
     "log": {
         "fileLevel": "DEBUG", 
