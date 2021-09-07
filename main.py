@@ -48,22 +48,30 @@ def panicSellAlarm(symbols, deltaForAlarm):
     prevPriceList = {}
 
     for symbol in symbols:
-        prevPriceList[symbol] = Lib.getCurrentPrice(symbol)
+        try:
+            prevPriceList[symbol] = Lib.getCurrentPrice(symbol)
+        except Exception as ex:
+            logger.warning("{:10} | Raised an exception. {}", symbol, repr(ex))
+            continue
 
     while True:
         time.sleep(5)
 
         for symbol in symbols:
-            curPrice = Lib.getCurrentPrice(symbol)
-            prevPrice = prevPriceList[symbol]
-            deltaPercent = ((curPrice - prevPrice) / prevPrice) * 100
-            
-            if deltaPercent <= deltaForAlarm:
-                logger.info("{:10} | {:10.2f}% 급락", symbol, deltaPercent)
-                TelegramBot.sendMsg("{:10} | {:10.2f}% 급락".format(symbol, deltaPercent))
+            try:
+                curPrice = Lib.getCurrentPrice(symbol)
+                prevPrice = prevPriceList[symbol]
+                deltaPercent = ((curPrice - prevPrice) / prevPrice) * 100
+                
+                if deltaPercent <= deltaForAlarm:
+                    logger.info("{:10} | {:10.2f}% 급락", symbol, deltaPercent)
+                    TelegramBot.sendMsg("{:10} | {:10.2f}% 급락".format(symbol, deltaPercent))
 
-            prevPriceList[symbol] = curPrice
-    
+                prevPriceList[symbol] = curPrice
+                
+            except Exception as ex:
+                logger.warning("{:10} | Raised an exception. {}", symbol, repr(ex))
+                continue
     
 #################### main ####################
 js = readJsonSetting("trade_setting.json")
