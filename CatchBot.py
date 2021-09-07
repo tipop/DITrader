@@ -58,13 +58,25 @@ class CatchBot:
         quantity = Lib.getQuantity(price, self.option.marginRatio)
         return Lib.api.create_limit_buy_order(self.symbol, quantity, price)
     
-    def getFilledPosition(self, order):
-        positions = Lib.api.fetch_positions(self.symbol)
+    def getFilledPrice(self, order):
+        usdtSize = 0
+        entryPrice = order['price']
+
+        for i in range(3):
+            try:
+                positions = Lib.api.fetch_positions(self.symbol)
+                break
+            except:
+                time.sleep(1)
+                continue
         
         if len(positions) > 0 and positions[0]['entryPrice'] != None:
-             return positions[0]
-
-        return None
+             entryPrice = positions[0]['entryPrice']
+             usdtSize = positions[0]['entryPrice'] * positions[0]['contracts']
+        
+        logger.info("{:10} | 캐치 매수 체결됨: {:10.5f} / {}USDT", self.symbol, entryPrice, usdtSize)
+        TelegramBot.sendMsg("{:10} | 캐치 매수 체결됨: {:10.5f} / {}USDT".format(self.symbol, entryPrice, usdtSize))
+        return entryPrice
 
     def waitForCatch(self):
         global isBuckbotSuspend
@@ -92,11 +104,7 @@ class CatchBot:
                     order = self.waitForBuyClosed(order, WAIT_SECONDS_FOR_BUY)
                     
                     if Lib.hasClosed(order):
-                        position = self.getFilledPosition(order)
-                        order['price'] = position['entryPrice'] # 주문가를 체결가로 정정
-                        usdtSize = position['entryPrice'] * position['contracts']
-                        logger.info("{:10} | 캐치 매수 체결됨: {:10.5f} / {}USDT", self.symbol, order['price'], usdtSize)
-                        TelegramBot.sendMsg("{:10} | 캐치 매수 체결됨: {:10.5f} / {}USDT".format(self.symbol, order['price'], usdtSize))
+                        order['price'] = self.getFilledPrice(order) # 주문가를 체결가로 정정
                         break
                     else:
                         logger.info("{:10} | {}초 동안 미체결되어 매수 취소함", self.symbol, WAIT_SECONDS_FOR_BUY)
