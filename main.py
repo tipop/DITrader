@@ -50,6 +50,7 @@ def panicSellAlarm(symbols, deltaForAlarm):
     for symbol in symbols:
         try:
             prevPriceList[symbol] = Lib.getCurrentPrice(symbol)
+            time.sleep(0.2)
         except Exception as ex:
             logger.warning("{:10} | Raised an exception. {}", symbol, repr(ex))
             continue
@@ -68,9 +69,11 @@ def panicSellAlarm(symbols, deltaForAlarm):
                     TelegramBot.sendMsg("{:10} | {:10.2f}% 급락".format(symbol, deltaPercent))
 
                 prevPriceList[symbol] = curPrice
-                
+                time.sleep(0.2)
+
             except Exception as ex:
                 logger.warning("{:10} | Raised an exception. {}", symbol, repr(ex))
+                time.sleep(2)
                 continue
     
 #################### main ####################

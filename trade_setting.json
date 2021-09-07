@@ -16,7 +16,7 @@
         "MANA/USDT",
         "MATIC/USDT",
         "ONE/USDT",
-        "RSR/USDT",
+        "RSR/USDT", 
         "SOL/USDT",
         "XRP/USDT"
     ],
@@ -35,7 +35,7 @@
         {"targetDI": 0.021, "marginRatio": 0.5, "profitPercent": 0.01, "stoplossTriggerPercent": 0.003}
     ,
     "catch": [
-        {"targetDI": 0.033, "marginRatio": 3, "profitPercent": 0.019, "stoplossTriggerPercent": 0.007},
+        {"targetDI": 0.04, "marginRatio": 3, "profitPercent": 0.02, "stoplossTriggerPercent": 0.007},
         {"targetDI": 0.033, "marginRatio": 5, "profitPercent": 0.015, "stoplossTriggerPercent": 0.005},
         {"targetDI": 0.045, "marginRatio": 10, "profitPercent": 0.03, "stoplossTriggerPercent": 0.005}
     ],

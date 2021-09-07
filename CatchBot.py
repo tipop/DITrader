@@ -23,7 +23,6 @@ class CatchBot:
         while True:
             try:
                 order = self.waitForCatch() # 타겟 이격도 이상 급락하면 매수해서 리턴된다.
-                TelegramBot.sendMsg("{:10} | 캐치 매수 체결됨: {:10.5f}".format(self.symbol, order['price']))
 
                 position = Position(order, self.option)
                     
@@ -58,6 +57,14 @@ class CatchBot:
     def orderBuyLimit(self, price):
         quantity = Lib.getQuantity(price, self.option.marginRatio)
         return Lib.api.create_limit_buy_order(self.symbol, quantity, price)
+    
+    def getFilledPosition(self, order):
+        positions = Lib.api.fetch_positions(self.symbol)
+        
+        if len(positions) > 0 and positions[0]['entryPrice'] != None:
+             return positions[0]
+
+        return None
 
     def waitForCatch(self):
         global isBuckbotSuspend
@@ -85,8 +92,12 @@ class CatchBot:
                     order = self.waitForBuyClosed(order, WAIT_SECONDS_FOR_BUY)
                     
                     if Lib.hasClosed(order):
-                        logger.info("{:10} | 캐치 매수 체결됨: {:10.5f}", self.symbol, order['price'])
-                        break   # 매수 체결되었으므로 캐치 종료
+                        position = self.getFilledPosition(order)
+                        order['price'] = position['entryPrice'] # 주문가를 체결가로 정정
+                        usdtSize = position['entryPrice'] * position['contracts']
+                        logger.info("{:10} | 캐치 매수 체결됨: {:10.5f} / {}USDT", self.symbol, order['price'], usdtSize)
+                        TelegramBot.sendMsg("{:10} | 캐치 매수 체결됨: {:10.5f} / {}USDT".format(self.symbol, order['price'], usdtSize))
+                        break
                     else:
                         logger.info("{:10} | {}초 동안 미체결되어 매수 취소함", self.symbol, WAIT_SECONDS_FOR_BUY)
                         Lib.api.cancel_order(order['id'], self.symbol)  # 30초 동안 체결되지 않으면 주문 취소한다.
