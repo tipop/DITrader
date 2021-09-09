@@ -83,8 +83,10 @@ class Position:
         return pnl
 
     def waitForPositionClosed(self):
-        SLEEP_SEC = 2
+        SLEEP_SEC = 0.5
         countOfFailure = 0
+        positionOpenTime = dt.datetime.now()
+        after3min = positionOpenTime + dt.timedelta(minutes=3)
         
         # 익절 주문 걸고 시작
         self.orderProfit()
@@ -92,7 +94,8 @@ class Position:
 
         while True:
             try:
-                if not self.isPositionOpen():
+                positions = Lib.api.fetch_positions(self.symbol)
+                if not (positions != None and len(positions) > 0 and positions[0] != None and positions[0]['side'] != None):
                     if self.hasProfitOrderClosed(): # 익절이 체결되면 스탑로스 주문이 자동으로 취소되지 않기에 수동으로 취소해야한다. (스탑로스가 체결되면 익절 주문은 자동 취소 됨)
                         Lib.api.cancel_order(self.stopOrder['id'], self.symbol)
                         logger.debug("{:10} | 스탑로스 취소: {:10.5f}", self.symbol, self.stopOrder['price'])
@@ -104,6 +107,16 @@ class Position:
                     #logger.info("{:10} | 본절로스 주문: {:10.5f}", self.symbol, self.stopOrder['price'])  => TypeError('unsupported format string passed to NoneType.__format__')
                     logger.info("{:10} | 본절로스 주문", self.symbol)
             
+                if dt.datetime.now() >= after3min and positions != None and len(positions) > 0 and positions[0]['unrealizedPnl'] < 0:
+                    curPrice = Lib.getCurrentPrice(self.symbol)
+                    pnlPercent = ((curPrice - positions[0]['entryPrice']) / positions[0]['entryPrice']) * 100
+                    if pnlPercent <= -3:    # 3분 후에도 -3% 손실 중이면 손절
+                        params = {'reduceOnly': True}
+                        Lib.api.create_market_sell_order(self.symbol, positions[0]['contractSize'], params)
+                        logger.info("{:10} | 손절 완료. {} %\t {} USDT", self.symbol, pnlPercent, positions[0]['unrealizedPnl'])
+                        raise Exception("손절되어 캐치 감시 종료")
+                        #break
+
                 if countOfFailure > 0:
                     logger.info("{:10} | 에러 복구 됨", self.symbol)
                     countOfFailure = 0
