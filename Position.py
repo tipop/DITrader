@@ -83,7 +83,7 @@ class Position:
         return pnl
 
     def waitForPositionClosed(self):
-        SLEEP_SEC = 0.5
+        SLEEP_SEC = 0.2
         countOfFailure = 0
         positionOpenTime = dt.datetime.now()
         after3min = positionOpenTime + dt.timedelta(minutes=3)
@@ -107,6 +107,7 @@ class Position:
                     #logger.info("{:10} | 본절로스 주문: {:10.5f}", self.symbol, self.stopOrder['price'])  => TypeError('unsupported format string passed to NoneType.__format__')
                     logger.info("{:10} | 본절로스 주문", self.symbol)
             
+                # 손절
                 if dt.datetime.now() >= after3min and positions != None and len(positions) > 0 and positions[0]['unrealizedPnl'] < 0:
                     curPrice = Lib.getCurrentPrice(self.symbol)
                     pnlPercent = ((curPrice - positions[0]['entryPrice']) / positions[0]['entryPrice']) * 100
