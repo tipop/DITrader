@@ -3,3 +3,4 @@ logs/log.log
 lib/*.pyc
 lib/__pycache__/*.pyc
 .DS_Store
+lib/__pycache__/ApiLib.cpython-38.pyc

@@ -2,6 +2,7 @@
 from lib.ApiLib import *
 import time
 from loguru import logger
+from TelegramBot import *
 
 TRY_COUNT = 5 
 
@@ -125,6 +126,7 @@ class Position:
             except Exception as ex:
                 countOfFailure += 1
                 logger.warning("{:10} | {} Raised an exception: {}", self.symbol, countOfFailure, repr(ex))
+                TelegramBot.sendMsg("{:10} | {} Raised an exception: {}".format(self.symbol, countOfFailure, repr(ex)))
                 if countOfFailure >= TRY_COUNT:
                     raise ex  # 30초 뒤에 시도해 보고 연속 5번 exception 나면 매매를 종료한다.
 

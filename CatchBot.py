@@ -80,12 +80,15 @@ class CatchBot:
             ma20 = Lib.get20Ma(symbol, curPrice)
             di = ((curPrice - ma20) / curPrice)
 
+            #if di <= self.option.targetDI:
+            #    TelegramBot.sendMsg("{} 이격도 만족 {:10.1}".format(symbol, di))
+
             if di < lowest['DI']:
                 lowest['DI'] = di
                 lowest['symbol'] = symbol
                 lowest['targetPrice'] = ma20 * (1 - self.option.targetDI)
             
-            time.sleep(0.05)
+            #time.sleep(0.01)
 
         return lowest
 
@@ -94,11 +97,11 @@ class CatchBot:
         order = None
 
         while True:
-            if dt.datetime.now().second != 59:
-                time.sleep(0.5)
-                continue
-
             try:
+                if dt.datetime.now().second != 59:
+                    time.sleep(0.5)
+                    continue
+                
                 lowest = self.getLowestDI()
 
                 if lowest['DI'] <= self.option.targetDI:
@@ -120,6 +123,7 @@ class CatchBot:
             except Exception as ex:
                 countOfFailure += 1
                 logger.warning("{:10} | {} Raised an exception. {}", lowest['symbol'], countOfFailure, repr(ex))
+                TelegramBot.sendMsg("{:10} | {} Raised an exception. {}".format(lowest['symbol'], countOfFailure, repr(ex)))
                 if countOfFailure >= TRY_COUNT:
                     raise ex  # 1초 뒤에 다시 시도해 보고 연속 5번 exception 나면 매매를 종료한다.
 
