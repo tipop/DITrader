@@ -100,6 +100,7 @@ class CatchBot:
                     continue
                 
                 lowest = self.getLowestDI()
+                logger.debug("lowest: {:10} {:5.2f} \t{:5.5f}", lowest['symbol'], lowest['DI']*100, lowest['targetPrice'])
 
                 if lowest['DI'] <= self.option.targetDI:
                     logger.info("{:10} | 캐치 만족: {:5.2f} \t{:5.5f}", lowest['symbol'], lowest['DI']*100, lowest['targetPrice'])
