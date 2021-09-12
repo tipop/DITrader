@@ -80,13 +80,10 @@ class CatchBot:
             ma20 = Lib.get20Ma(symbol, curPrice)
             di = ((curPrice - ma20) / curPrice)
 
-            #if di <= self.option.targetDI:
-            #    TelegramBot.sendMsg("{} 이격도 만족 {:10.1}".format(symbol, di))
-
             if di < lowest['DI']:
-                lowest['DI'] = di
                 lowest['symbol'] = symbol
-                lowest['targetPrice'] = ma20 * (1 - self.option.targetDI)
+                lowest['DI'] = di
+                lowest['targetPrice'] = ma20 * (1 + self.option.targetDI)
             
             #time.sleep(0.01)
 
@@ -105,8 +102,9 @@ class CatchBot:
                 lowest = self.getLowestDI()
 
                 if lowest['DI'] <= self.option.targetDI:
+                    logger.info("{:10} | 캐치 만족: {:5.2f} \t{:5.5f}", lowest['symbol'], lowest['DI']*100, lowest['targetPrice'])
                     order = self.orderBuyLimit(lowest['symbol'], lowest['targetPrice'])
-                    logger.info("{:10} | 캐치 매수 주문: {:10.5f}, DI: {:10.1f}", lowest['symbol'], lowest['targetPrice'], lowest['DI'] * 100)
+                    logger.info("{:10} | 캐치 매수 주문: {:5.2f} \t{:5.5f}", lowest['symbol'], lowest['DI']*100, lowest['targetPrice'])
                     order = self.waitForBuyClosed(order, WAIT_SECONDS_FOR_BUY)
                     
                     if Lib.hasClosed(order):

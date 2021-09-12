@@ -116,6 +116,7 @@ class Position:
                         params = {'reduceOnly': True}
                         Lib.api.create_market_sell_order(self.symbol, positions[0]['contractSize'], params)
                         logger.info("{:10} | 손절 완료. {} %\t {} USDT", self.symbol, pnlPercent, positions[0]['unrealizedPnl'])
+                        TelegramBot.sendMsg("{:10} | 손절 완료. {} %\t {} USDT".format(self.symbol, pnlPercent, positions[0]['unrealizedPnl']))
                         raise Exception("손절되어 캐치 감시 종료")
                         #break
 
