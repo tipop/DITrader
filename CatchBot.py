@@ -95,8 +95,8 @@ class CatchBot:
 
         while True:
             try:
-                if dt.datetime.now().second != 59:
-                    time.sleep(0.5)
+                if dt.datetime.now().second != 58:
+                    time.sleep(0.2)
                     continue
                 
                 lowest = self.getLowestDI()

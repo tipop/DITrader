@@ -31,7 +31,7 @@
     "useCatchBot": true,
 
     "catch": [
-        {"targetDI": -0.033, "marginRatio": 8, "profitPercent": 0.025, "stoplossTriggerPercent": 0.006},
+        {"targetDI": -0.033, "marginRatio": 9.5, "profitPercent": 0.025, "stoplossTriggerPercent": 0.006},
         {"targetDI": -0.033, "marginRatio": 5, "profitPercent": 0.015, "stoplossTriggerPercent": 0.005},
         {"targetDI": -0.045, "marginRatio": 10, "profitPercent": 0.03, "stoplossTriggerPercent": 0.005}
     ],
