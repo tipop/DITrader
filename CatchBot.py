@@ -65,8 +65,8 @@ class CatchBot:
              entryPrice = positions[0]['entryPrice']
              usdtSize = positions[0]['entryPrice'] * positions[0]['contracts']
         
-        logger.info("{:10} | 캐치 매수 체결됨: {:10.5f} / {}USDT", order['symbol'], entryPrice, usdtSize)
-        TelegramBot.sendMsg("{:10} | 캐치 매수 체결됨: {:10.5f} / {}USDT".format(order['symbol'], entryPrice, usdtSize))
+        logger.info("{:10} | 캐치 매수 체결됨. 체결가: {:10} / 크기: {}USDT", order['symbol'], entryPrice, usdtSize)
+        TelegramBot.sendMsg("{:10} | 캐치 매수 체결됨. 체결가: {:10} / 크기: {}USDT".format(order['symbol'], entryPrice, usdtSize))
         return entryPrice
 
     def getLowestDI(self):
@@ -103,9 +103,8 @@ class CatchBot:
                 logger.debug("lowest: {:10} {:5.2f} \t{:5.5f}", lowest['symbol'], lowest['DI']*100, lowest['targetPrice'])
 
                 if lowest['DI'] <= self.option.targetDI:
-                    logger.info("{:10} | 캐치 만족: {:5.2f} \t{:5.5f}", lowest['symbol'], lowest['DI']*100, lowest['targetPrice'])
-                    order = self.orderBuyLimit(lowest['symbol'], lowest['targetPrice'])
                     logger.info("{:10} | 캐치 매수 주문: {:5.2f} \t{:5.5f}", lowest['symbol'], lowest['DI']*100, lowest['targetPrice'])
+                    order = self.orderBuyLimit(lowest['symbol'], lowest['targetPrice'])
                     order = self.waitForBuyClosed(order, WAIT_SECONDS_FOR_BUY)
                     
                     if Lib.hasClosed(order):

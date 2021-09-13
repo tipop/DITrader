@@ -40,7 +40,7 @@
         "deltaPercent": -1
     },
     "log": {
-        "fileLevel": "DEBUG", 
-        "consoleLevel": "INFO"
+        "fileLevel": "INFO", 
+        "consoleLevel": "DEBUG"
     }
 }
